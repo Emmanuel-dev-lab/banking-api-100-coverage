@@ -22,8 +22,11 @@ services:
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-bank}
       DB_USERNAME: ${POSTGRES_USER:-bank}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-bank}
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-please-0123456789abcdef}
+      # Obligatoire, aucun defaut : compose echoue si JWT_SECRET n'est pas defini
+      # (>= 32 octets requis). Definir dans .env ou l'UI Coolify.
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET doit etre defini (>= 32 octets)}
       JWT_TTL_SECONDS: ${JWT_TTL_SECONDS:-3600}
+      JWT_ISSUER: ${JWT_ISSUER:-banking-api}
       SEED_ENABLED: ${SEED_ENABLED:-true}
     # Pas de binding de port hote : sur Coolify, le reverse-proxy route vers
     # ce port expose via le reseau interne. Pour exposer un port en local,
