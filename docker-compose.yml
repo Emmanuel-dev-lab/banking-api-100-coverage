@@ -35,5 +35,15 @@ services:
     expose:
       - "8080"
 
+  web:
+    build: ./frontend
+    depends_on:
+      - api
+    # Service public : sert le SPA (build statique) et relaie /api vers le
+    # backend via le reseau interne (meme origine -> aucun CORS). Sur Coolify,
+    # le reverse-proxy route le domaine vers ce port 80.
+    expose:
+      - "80"
+
 volumes:
   db_data:
