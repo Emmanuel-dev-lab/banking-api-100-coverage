@@ -61,7 +61,7 @@ public class ClientController {
     })
     public ResponseEntity<ClientResponse> create(
             @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
-            @RequestBody CreateClientRequest request) {
+            @jakarta.validation.Valid @RequestBody CreateClientRequest request) {
         TokenClaims claims = authService.authenticate(RequestAuth.bearer(authorization));
         guard.requireAdmin(claims);
         Client client = clientService.createClient(
@@ -113,7 +113,7 @@ public class ClientController {
     public ResponseEntity<AccountResponse> openAccount(
             @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String clientId,
-            @RequestBody OpenAccountRequest request) {
+            @jakarta.validation.Valid @RequestBody OpenAccountRequest request) {
         TokenClaims claims = authService.authenticate(RequestAuth.bearer(authorization));
         guard.requireOwnerOrAdmin(claims, clientId);
         Account account = accountService.openAccount(

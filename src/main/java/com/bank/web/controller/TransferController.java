@@ -52,7 +52,7 @@ public class TransferController {
     })
     public ResponseEntity<Void> transfer(
             @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
-            @RequestBody TransferRequest request) {
+            @jakarta.validation.Valid @RequestBody TransferRequest request) {
         TokenClaims claims = authService.authenticate(RequestAuth.bearer(authorization));
         Account source = accountService.getAccount(request.sourceAccountId());
         guard.requireOwnerOrAdmin(claims, source.clientId());

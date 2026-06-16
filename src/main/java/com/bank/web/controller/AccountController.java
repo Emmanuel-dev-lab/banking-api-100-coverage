@@ -83,7 +83,7 @@ public class AccountController {
     public ResponseEntity<AccountResponse> deposit(
             @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String id,
-            @RequestBody AmountRequest request) {
+            @jakarta.validation.Valid @RequestBody AmountRequest request) {
         authorize(authorization, id);
         Account account = accountService.deposit(id, request.amount());
         return ResponseEntity.ok(AccountResponse.from(account));
@@ -103,7 +103,7 @@ public class AccountController {
     public ResponseEntity<AccountResponse> withdraw(
             @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String id,
-            @RequestBody AmountRequest request) {
+            @jakarta.validation.Valid @RequestBody AmountRequest request) {
         authorize(authorization, id);
         Account account = accountService.withdraw(id, request.amount());
         return ResponseEntity.ok(AccountResponse.from(account));
