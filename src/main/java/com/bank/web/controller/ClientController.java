@@ -4,6 +4,7 @@ import com.bank.application.service.AccountService;
 import com.bank.application.service.AuthService;
 import com.bank.application.service.AuthorizationGuard;
 import com.bank.application.service.ClientService;
+import com.bank.application.service.LoanService;
 import com.bank.domain.model.Account;
 import com.bank.domain.model.Client;
 import com.bank.domain.port.TokenClaims;
@@ -11,6 +12,7 @@ import com.bank.web.RequestAuth;
 import com.bank.web.dto.AccountResponse;
 import com.bank.web.dto.ClientResponse;
 import com.bank.web.dto.CreateClientRequest;
+import com.bank.web.dto.LoanResponse;
 import com.bank.web.dto.OpenAccountRequest;
 import com.bank.web.dto.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,13 +38,15 @@ public class ClientController {
 
     private final ClientService clientService;
     private final AccountService accountService;
+    private final LoanService loanService;
     private final AuthService authService;
     private final AuthorizationGuard guard;
 
-    public ClientController(ClientService clientService, AccountService accountService,
+    public ClientController(ClientService clientService, AccountService accountService, LoanService loanService,
                             AuthService authService, AuthorizationGuard guard) {
         this.clientService = clientService;
         this.accountService = accountService;
+        this.loanService = loanService;
         this.authService = authService;
         this.guard = guard;
     }
@@ -134,5 +138,24 @@ public class ClientController {
         guard.requireOwnerOrAdmin(authService.authenticate(RequestAuth.bearer(authorization)), clientId);
         return ResponseEntity.ok(PageResponse.of(
                 accountService.listClientAccounts(clientId, page, size), AccountResponse::from));
+    }
+
+    @GetMapping("/{clientId}/loans")
+    @Operation(summary = "Lister les prets d'un client",
+            description = "Accessible au client proprietaire ou a un ADMIN. Pagine via page/size.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Page de prets"),
+            @ApiResponse(responseCode = "400", description = "Parametres de pagination invalides"),
+            @ApiResponse(responseCode = "403", description = "Acces interdit"),
+            @ApiResponse(responseCode = "404", description = "Client inconnu")
+    })
+    public ResponseEntity<PageResponse<LoanResponse>> listLoans(
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
+            @PathVariable String clientId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        guard.requireOwnerOrAdmin(authService.authenticate(RequestAuth.bearer(authorization)), clientId);
+        return ResponseEntity.ok(PageResponse.of(
+                loanService.listClientLoans(clientId, page, size), LoanResponse::from));
     }
 }

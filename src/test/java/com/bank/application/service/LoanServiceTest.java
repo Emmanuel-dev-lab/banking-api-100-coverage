@@ -122,4 +122,30 @@ class LoanServiceTest {
         Loan loan = request();
         assertThat(service.getSchedule(loan.id())).hasSize(12);
     }
+
+    // listing admin
+    @Test
+    void listLoans_returnsPage() {
+        request();
+        request();
+        var page = service.listLoans(0, 1);
+        assertThat(page.content()).hasSize(1);
+        assertThat(page.totalElements()).isEqualTo(2);
+    }
+
+    // listing par client : client absent
+    @Test
+    void listClientLoans_unknownClient_throws() {
+        assertThatThrownBy(() -> service.listClientLoans("nope", 0, 20))
+                .isInstanceOf(ClientNotFoundException.class);
+    }
+
+    // listing par client : ok
+    @Test
+    void listClientLoans_existing_returnsPage() {
+        request();
+        var page = service.listClientLoans("c1", 0, 20);
+        assertThat(page.content()).hasSize(1);
+        assertThat(page.totalElements()).isEqualTo(1);
+    }
 }

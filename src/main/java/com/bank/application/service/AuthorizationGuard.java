@@ -23,4 +23,12 @@ public class AuthorizationGuard {
             throw new ForbiddenException("admin only");
         }
     }
+
+    /** Renvoie le clientId du jeton, ou refuse si absent (ex. un ADMIN sur /me). */
+    public String requireClientId(TokenClaims claims) {
+        if (claims.clientId() == null) {
+            throw new ForbiddenException("client account required");
+        }
+        return claims.clientId();
+    }
 }
