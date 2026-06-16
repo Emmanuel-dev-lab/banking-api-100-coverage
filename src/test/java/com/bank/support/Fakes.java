@@ -63,6 +63,11 @@ public final class Fakes {
         }
 
         @Override
+        public Optional<Account> findByIdForUpdate(String id) {
+            return findById(id);
+        }
+
+        @Override
         public List<Account> findAll(int offset, int limit) {
             return store.values().stream().skip(offset).limit(limit).toList();
         }
@@ -179,6 +184,42 @@ public final class Fakes {
         public String newId() {
             counter++;
             return "id-" + counter;
+        }
+    }
+
+    /** Garde de connexion controlable : ne bloque que si {@code blocked} est arme. */
+    public static final class FakeLoginAttemptGuard implements LoginAttemptGuard {
+        private boolean blocked = false;
+        private int failures = 0;
+        private int successes = 0;
+
+        public void block() {
+            this.blocked = true;
+        }
+
+        public int failures() {
+            return failures;
+        }
+
+        public int successes() {
+            return successes;
+        }
+
+        @Override
+        public void assertNotBlocked(String username) {
+            if (blocked) {
+                throw new com.bank.domain.exception.TooManyLoginAttemptsException("blocked");
+            }
+        }
+
+        @Override
+        public void recordFailure(String username) {
+            failures++;
+        }
+
+        @Override
+        public void recordSuccess(String username) {
+            successes++;
         }
     }
 

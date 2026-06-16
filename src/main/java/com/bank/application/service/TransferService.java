@@ -35,9 +35,9 @@ public class TransferService {
         if (sourceId.equals(destId)) {
             throw new SameAccountTransferException(sourceId);
         }
-        Account source = accountRepository.findById(sourceId)
+        Account source = accountRepository.findByIdForUpdate(sourceId)
                 .orElseThrow(() -> new AccountNotFoundException(sourceId));
-        Account dest = accountRepository.findById(destId)
+        Account dest = accountRepository.findByIdForUpdate(destId)
                 .orElseThrow(() -> new AccountNotFoundException(destId));
         source.ensureActive();
         dest.ensureActive();

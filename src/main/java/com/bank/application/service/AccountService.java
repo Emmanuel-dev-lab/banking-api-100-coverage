@@ -66,10 +66,16 @@ public class AccountService {
                 .orElseThrow(() -> new AccountNotFoundException(id));
     }
 
+    /** Chargement verrouille pour une mutation de solde (anti lost-update). */
+    private Account getAccountForUpdate(String id) {
+        return accountRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new AccountNotFoundException(id));
+    }
+
     @Transactional
     public Account deposit(String accountId, long amount) {
         Money money = Money.ofPositive(amount);
-        Account account = getAccount(accountId);
+        Account account = getAccountForUpdate(accountId);
         account.deposit(money);
         accountRepository.save(account);
         record(accountId, TransactionType.DEPOSIT, money, null);
@@ -79,7 +85,7 @@ public class AccountService {
     @Transactional
     public Account withdraw(String accountId, long amount) {
         Money money = Money.ofPositive(amount);
-        Account account = getAccount(accountId);
+        Account account = getAccountForUpdate(accountId);
         account.withdraw(money);
         accountRepository.save(account);
         record(accountId, TransactionType.WITHDRAWAL, money, null);

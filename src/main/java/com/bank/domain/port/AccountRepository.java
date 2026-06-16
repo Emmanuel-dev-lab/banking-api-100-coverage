@@ -10,6 +10,12 @@ public interface AccountRepository {
 
     Optional<Account> findById(String id);
 
+    /**
+     * Charge un compte en vue d'une mutation, avec verrou exclusif (anti
+     * lost-update). A utiliser dans toute operation qui lit puis ecrit un solde.
+     */
+    Optional<Account> findByIdForUpdate(String id);
+
     List<Account> findAll(int offset, int limit);
 
     long count();

@@ -40,6 +40,11 @@ public class AccountRepositoryAdapter implements AccountRepository {
     }
 
     @Override
+    public Optional<Account> findByIdForUpdate(String id) {
+        return jpa.findByIdForUpdate(id).map(this::toDomain);
+    }
+
+    @Override
     public List<Account> findAll(int offset, int limit) {
         return jpa.findAll(PageRequest.of(offset / limit, limit)).stream()
                 .map(this::toDomain)
