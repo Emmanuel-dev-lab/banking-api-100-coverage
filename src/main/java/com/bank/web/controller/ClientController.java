@@ -12,6 +12,7 @@ import com.bank.web.dto.AccountResponse;
 import com.bank.web.dto.ClientResponse;
 import com.bank.web.dto.CreateClientRequest;
 import com.bank.web.dto.OpenAccountRequest;
+import com.bank.web.dto.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -63,6 +65,21 @@ public class ClientController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ClientResponse.from(client));
     }
 
+    @GetMapping
+    @Operation(summary = "Lister les clients", description = "Reserve aux ADMIN. Pagine via page/size.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Page de clients"),
+            @ApiResponse(responseCode = "400", description = "Parametres de pagination invalides"),
+            @ApiResponse(responseCode = "403", description = "Role ADMIN requis")
+    })
+    public ResponseEntity<PageResponse<ClientResponse>> list(
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        guard.requireAdmin(authService.authenticate(RequestAuth.bearer(authorization)));
+        return ResponseEntity.ok(PageResponse.of(clientService.listClients(page, size), ClientResponse::from));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Consulter un client", description = "Accessible au client proprietaire ou a un ADMIN.")
     @ApiResponses({
@@ -98,5 +115,24 @@ public class ClientController {
         Account account = accountService.openAccount(
                 clientId, request.type(), request.overdraftLimit(), request.annualRate());
         return ResponseEntity.status(HttpStatus.CREATED).body(AccountResponse.from(account));
+    }
+
+    @GetMapping("/{clientId}/accounts")
+    @Operation(summary = "Lister les comptes d'un client",
+            description = "Accessible au client proprietaire ou a un ADMIN. Pagine via page/size.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Page de comptes"),
+            @ApiResponse(responseCode = "400", description = "Parametres de pagination invalides"),
+            @ApiResponse(responseCode = "403", description = "Acces interdit"),
+            @ApiResponse(responseCode = "404", description = "Client inconnu")
+    })
+    public ResponseEntity<PageResponse<AccountResponse>> listAccounts(
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
+            @PathVariable String clientId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        guard.requireOwnerOrAdmin(authService.authenticate(RequestAuth.bearer(authorization)), clientId);
+        return ResponseEntity.ok(PageResponse.of(
+                accountService.listClientAccounts(clientId, page, size), AccountResponse::from));
     }
 }

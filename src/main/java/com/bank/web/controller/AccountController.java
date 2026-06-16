@@ -8,6 +8,7 @@ import com.bank.domain.port.TokenClaims;
 import com.bank.web.RequestAuth;
 import com.bank.web.dto.AccountResponse;
 import com.bank.web.dto.AmountRequest;
+import com.bank.web.dto.PageResponse;
 import com.bank.web.dto.TransactionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -39,6 +41,21 @@ public class AccountController {
         this.accountService = accountService;
         this.authService = authService;
         this.guard = guard;
+    }
+
+    @GetMapping
+    @Operation(summary = "Lister tous les comptes", description = "Reserve aux ADMIN. Pagine via page/size.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Page de comptes"),
+            @ApiResponse(responseCode = "400", description = "Parametres de pagination invalides"),
+            @ApiResponse(responseCode = "403", description = "Role ADMIN requis")
+    })
+    public ResponseEntity<PageResponse<AccountResponse>> list(
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        guard.requireAdmin(authService.authenticate(RequestAuth.bearer(authorization)));
+        return ResponseEntity.ok(PageResponse.of(accountService.listAccounts(page, size), AccountResponse::from));
     }
 
     @GetMapping("/{id}")

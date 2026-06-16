@@ -37,6 +37,16 @@ public final class Fakes {
         public Optional<Client> findById(String id) {
             return Optional.ofNullable(store.get(id));
         }
+
+        @Override
+        public List<Client> findAll(int offset, int limit) {
+            return store.values().stream().skip(offset).limit(limit).toList();
+        }
+
+        @Override
+        public long count() {
+            return store.size();
+        }
     }
 
     public static final class InMemoryAccountRepository implements AccountRepository {
@@ -50,6 +60,28 @@ public final class Fakes {
         @Override
         public Optional<Account> findById(String id) {
             return Optional.ofNullable(store.get(id));
+        }
+
+        @Override
+        public List<Account> findAll(int offset, int limit) {
+            return store.values().stream().skip(offset).limit(limit).toList();
+        }
+
+        @Override
+        public long count() {
+            return store.size();
+        }
+
+        @Override
+        public List<Account> findByClientId(String clientId, int offset, int limit) {
+            return store.values().stream()
+                    .filter(a -> a.clientId().equals(clientId))
+                    .skip(offset).limit(limit).toList();
+        }
+
+        @Override
+        public long countByClientId(String clientId) {
+            return store.values().stream().filter(a -> a.clientId().equals(clientId)).count();
         }
     }
 

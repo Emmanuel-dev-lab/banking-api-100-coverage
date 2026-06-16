@@ -147,4 +147,30 @@ class AccountServiceTest {
         service.deposit(a.id(), 100);
         assertThat(service.getHistory(a.id())).hasSize(1);
     }
+
+    // listing global pagine
+    @Test
+    void listAccounts_returnsPage() {
+        openCurrent();
+        openCurrent();
+        var page = service.listAccounts(0, 1);
+        assertThat(page.content()).hasSize(1);
+        assertThat(page.totalElements()).isEqualTo(2);
+    }
+
+    // listing par client : client absent
+    @Test
+    void listClientAccounts_unknownClient_throws() {
+        assertThatThrownBy(() -> service.listClientAccounts("nope", 0, 20))
+                .isInstanceOf(ClientNotFoundException.class);
+    }
+
+    // listing par client : ok
+    @Test
+    void listClientAccounts_existing_returnsPage() {
+        openCurrent();
+        var page = service.listClientAccounts("c1", 0, 20);
+        assertThat(page.content()).hasSize(1);
+        assertThat(page.totalElements()).isEqualTo(1);
+    }
 }

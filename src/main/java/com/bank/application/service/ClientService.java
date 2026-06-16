@@ -2,6 +2,8 @@ package com.bank.application.service;
 
 import com.bank.domain.exception.ClientNotFoundException;
 import com.bank.domain.model.Client;
+import com.bank.domain.model.Page;
+import com.bank.domain.model.PageRequest;
 import com.bank.domain.model.Role;
 import com.bank.domain.model.User;
 import com.bank.domain.port.ClientRepository;
@@ -40,5 +42,11 @@ public class ClientService {
     public Client getClient(String id) {
         return clientRepository.findById(id)
                 .orElseThrow(() -> new ClientNotFoundException(id));
+    }
+
+    public Page<Client> listClients(int page, int size) {
+        PageRequest pr = new PageRequest(page, size);
+        return new Page<>(clientRepository.findAll(pr.offset(), pr.size()),
+                clientRepository.count(), pr.page(), pr.size());
     }
 }

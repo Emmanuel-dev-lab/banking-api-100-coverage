@@ -146,8 +146,11 @@ test » qui garantit le 100 % — est dans
 |---------|-------------------------------------|------------------|
 | POST    | `/api/auth/login`                   | public           |
 | POST    | `/api/clients`                      | ADMIN            |
+| GET     | `/api/clients`                      | ADMIN            |
 | GET     | `/api/clients/{id}`                 | owner / ADMIN    |
 | POST    | `/api/clients/{id}/accounts`        | owner / ADMIN    |
+| GET     | `/api/clients/{id}/accounts`        | owner / ADMIN    |
+| GET     | `/api/accounts`                     | ADMIN            |
 | GET     | `/api/accounts/{id}`                | owner / ADMIN    |
 | POST    | `/api/accounts/{id}/deposit`        | owner / ADMIN    |
 | POST    | `/api/accounts/{id}/withdraw`       | owner / ADMIN    |
@@ -158,6 +161,8 @@ test » qui garantit le 100 % — est dans
 | POST    | `/api/loans/{id}/repay`             | owner / ADMIN    |
 
 Les endpoints protégés attendent l'en-tête `Authorization: Bearer <token>`.
+Les listes sont paginées via `?page=<n>&size=<m>` (défaut `page=0`, `size=20`,
+`size` max 100) et renvoient `{ content, page, size, totalElements, totalPages }`.
 
 ### Exemple
 

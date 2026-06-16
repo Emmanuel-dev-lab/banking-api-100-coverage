@@ -40,6 +40,18 @@ class ClientServiceTest {
         assertThat(service.getClient(created.id())).isSameAs(created);
     }
 
+    // listing pagine
+    @Test
+    void listClients_returnsPage() {
+        service.createClient("A", "A", "a", "pw");
+        service.createClient("B", "B", "b", "pw");
+        service.createClient("C", "C", "c", "pw");
+        var page = service.listClients(0, 2);
+        assertThat(page.content()).hasSize(2);
+        assertThat(page.totalElements()).isEqualTo(3);
+        assertThat(page.totalPages()).isEqualTo(2);
+    }
+
     // CS3
     @Test
     void createClient_valid_persistsClientAndUser() {

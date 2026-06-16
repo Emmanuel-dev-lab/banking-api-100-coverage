@@ -6,8 +6,10 @@ import com.bank.domain.model.CurrentAccount;
 import com.bank.domain.model.Money;
 import com.bank.domain.model.SavingsAccount;
 import com.bank.domain.port.AccountRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -35,6 +37,30 @@ public class AccountRepositoryAdapter implements AccountRepository {
     @Override
     public Optional<Account> findById(String id) {
         return jpa.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public List<Account> findAll(int offset, int limit) {
+        return jpa.findAll(PageRequest.of(offset / limit, limit)).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long count() {
+        return jpa.count();
+    }
+
+    @Override
+    public List<Account> findByClientId(String clientId, int offset, int limit) {
+        return jpa.findByClientId(clientId, PageRequest.of(offset / limit, limit)).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long countByClientId(String clientId) {
+        return jpa.countByClientId(clientId);
     }
 
     private Account toDomain(AccountJpa e) {
