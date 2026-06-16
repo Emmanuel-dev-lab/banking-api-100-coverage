@@ -16,5 +16,4 @@ RUN useradd -r -u 1001 appuser
 COPY --from=build /app/target/banking-api-*.jar app.jar
 USER appuser
 EXPOSE 8080
-ENV SPRING_PROFILES_ACTIVE=prod
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
