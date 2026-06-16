@@ -39,4 +39,18 @@ public class AuthService {
     public TokenClaims authenticate(String token) {
         return tokenService.verify(token);
     }
+
+    /**
+     * Change le mot de passe de l'utilisateur identifie par {@code userId}.
+     * Refuse (401) si l'utilisateur est introuvable ou si l'ancien mot de
+     * passe ne correspond pas.
+     */
+    public void changePassword(String userId, String oldPassword, String newPassword) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null || !passwordHasher.matches(oldPassword, user.passwordHash())) {
+            throw new UnauthorizedException("invalid credentials");
+        }
+        userRepository.save(new User(user.id(), user.username(),
+                passwordHasher.hash(newPassword), user.role(), user.clientId()));
+    }
 }

@@ -62,4 +62,21 @@ class ClientServiceTest {
         assertThat(user.clientId()).isEqualTo(created.id());
         assertThat(hasher.matches("pw", user.passwordHash())).isTrue();
     }
+
+    // CS4 : mise a jour du nom d'un client existant
+    @Test
+    void updateClient_existing_changesName() {
+        Client created = service.createClient("John", "Doe", "john", "pw");
+        Client updated = service.updateClient(created.id(), "Johnny", "Doe-Smith");
+        assertThat(updated.firstName()).isEqualTo("Johnny");
+        assertThat(updated.lastName()).isEqualTo("Doe-Smith");
+        assertThat(service.getClient(created.id()).firstName()).isEqualTo("Johnny");
+    }
+
+    // CS5 : mise a jour d'un client inconnu -> 404
+    @Test
+    void updateClient_unknown_throws() {
+        assertThatThrownBy(() -> service.updateClient("nope", "A", "B"))
+                .isInstanceOf(ClientNotFoundException.class);
+    }
 }

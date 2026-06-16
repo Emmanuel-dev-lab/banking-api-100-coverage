@@ -110,6 +110,7 @@ Toutes héritent de `BankException` (runtime). Chacune porte un `code` stable ma
 - `IdGenerator` → `String newId()`.
 - `PasswordHasher` → `String hash(String raw)`, `boolean matches(String raw, String hash)`.
 - `TokenService` → `String issue(User u)`, `TokenClaims verify(String token)` (lève `UnauthorizedException`).
+- `UserRepository` → `save`, `findByUsername`, `findById(userId)` (pour le changement de mot de passe).
 - `ClientRepository`, `AccountRepository`, `TransactionRepository`, `LoanRepository`, `UserRepository`.
 
 ---
@@ -290,6 +291,8 @@ Chaque service est `@Transactional`. Les méthodes valident **puis** mutent. Les
 | POST | `/api/auth/login` | public | `AuthService.login` |
 | POST | `/api/clients` | ADMIN | `ClientService.createClient` |
 | GET | `/api/clients/{id}` | owner/ADMIN | `ClientService.getClient` |
+| PATCH | `/api/clients/{id}` | owner/ADMIN | `ClientService.updateClient` (nom) |
+| POST | `/api/me/password` | client | `AuthService.changePassword` (204) |
 | POST | `/api/clients/{id}/accounts` | owner/ADMIN | `AccountService.openAccount` |
 | GET | `/api/accounts/{id}` | owner/ADMIN | `AccountService.getAccount` |
 | POST | `/api/accounts/{id}/deposit` | owner/ADMIN | `AccountService.deposit` |
