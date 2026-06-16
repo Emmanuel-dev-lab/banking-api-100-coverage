@@ -21,12 +21,19 @@ public class SavingsAccount extends Account {
         return balance().amount() - amount.amount() >= 0;
     }
 
-    /** Capitalise les interets (arrondi inferieur). Ne credite que si > 0. */
-    public void applyInterest() {
-        long interest = (long) Math.floor(balance().amount() * annualRate);
+    /**
+     * Capitalise les interets d'un mois : {@code floor(solde * tauxAnnuel/12)}
+     * (arrondi inferieur). Ne credite que si le montant est strictement positif.
+     * Renvoie le montant credite (0 si aucun).
+     */
+    public Money applyMonthlyInterest() {
+        long interest = (long) Math.floor(balance().amount() * annualRate / 12.0);
         if (interest > 0) {
-            deposit(Money.of(interest));
+            Money credited = Money.of(interest);
+            deposit(credited);
+            return credited;
         }
+        return Money.ZERO;
     }
 
     public double annualRate() {

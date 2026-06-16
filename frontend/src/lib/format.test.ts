@@ -21,6 +21,7 @@ describe('format', () => {
     expect(txnIsCredit('DEPOSIT')).toBe(true);
     expect(txnIsCredit('TRANSFER_IN')).toBe(true);
     expect(txnIsCredit('LOAN_DISBURSEMENT')).toBe(true);
+    expect(txnIsCredit('INTEREST')).toBe(true);
     expect(txnIsCredit('WITHDRAWAL')).toBe(false);
     expect(txnIsCredit('TRANSFER_OUT')).toBe(false);
     expect(txnIsCredit('LOAN_REPAYMENT')).toBe(false);

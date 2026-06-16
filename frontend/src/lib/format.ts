@@ -59,6 +59,7 @@ const txnLabels: Record<TransactionType, string> = {
   TRANSFER_OUT: 'Virement emis',
   LOAN_DISBURSEMENT: 'Decaissement pret',
   LOAN_REPAYMENT: 'Remboursement pret',
+  INTEREST: 'Interets',
 };
 
 export function txnLabel(type: TransactionType): string {
@@ -67,7 +68,12 @@ export function txnLabel(type: TransactionType): string {
 
 /** Sens comptable : credit (+) ou debit (-) pour le compte concerne. */
 export function txnIsCredit(type: TransactionType): boolean {
-  return type === 'DEPOSIT' || type === 'TRANSFER_IN' || type === 'LOAN_DISBURSEMENT';
+  return (
+    type === 'DEPOSIT' ||
+    type === 'TRANSFER_IN' ||
+    type === 'LOAN_DISBURSEMENT' ||
+    type === 'INTEREST'
+  );
 }
 
 export function initials(firstName: string, lastName: string): string {

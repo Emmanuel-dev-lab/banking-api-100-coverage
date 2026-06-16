@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Money } from '@/components/ui/Money';
-import { LoanStatusBadge } from '@/components/ui/Badge';
+import { LateBadge, LoanStatusBadge } from '@/components/ui/Badge';
 import { Spinner, ErrorState } from '@/components/ui/States';
 import { AmountModal } from '@/components/modals/AmountModal';
 import { useToast } from '@/components/Toast';
@@ -52,7 +52,10 @@ export function LoanDetailPage() {
             <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-faint">
               Capital restant
             </p>
-            <LoanStatusBadge status={l.status} />
+            <span className="flex items-center gap-2">
+              {l.late && <LateBadge />}
+              <LoanStatusBadge status={l.status} />
+            </span>
           </div>
           <Money amount={l.outstandingPrincipal} className="mt-2 text-[26px]" />
           <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-line">

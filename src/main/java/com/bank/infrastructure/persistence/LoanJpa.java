@@ -31,6 +31,7 @@ public class LoanJpa {
     private LoanStatus status;
     private long outstandingPrincipal;
     private LocalDate startDate;
+    private boolean late;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "installments", joinColumns = @JoinColumn(name = "loan_id"))
@@ -42,7 +43,7 @@ public class LoanJpa {
 
     public LoanJpa(String id, String clientId, String accountId, long principal, double annualRate,
                    int termMonths, LoanStatus status, long outstandingPrincipal, LocalDate startDate,
-                   List<InstallmentEmb> schedule) {
+                   boolean late, List<InstallmentEmb> schedule) {
         this.id = id;
         this.clientId = clientId;
         this.accountId = accountId;
@@ -52,6 +53,7 @@ public class LoanJpa {
         this.status = status;
         this.outstandingPrincipal = outstandingPrincipal;
         this.startDate = startDate;
+        this.late = late;
         this.schedule = schedule;
     }
 
@@ -89,6 +91,10 @@ public class LoanJpa {
 
     public LocalDate getStartDate() {
         return startDate;
+    }
+
+    public boolean isLate() {
+        return late;
     }
 
     public List<InstallmentEmb> getSchedule() {

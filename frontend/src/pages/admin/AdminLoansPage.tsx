@@ -4,7 +4,7 @@ import { useLoans } from '@/api/hooks';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Money } from '@/components/ui/Money';
-import { LoanStatusBadge } from '@/components/ui/Badge';
+import { LateBadge, LoanStatusBadge } from '@/components/ui/Badge';
 import { Spinner, ErrorState, EmptyState } from '@/components/ui/States';
 import { Pagination } from '@/components/ui/Pagination';
 
@@ -54,7 +54,10 @@ export function AdminLoansPage() {
                         <Money amount={l.outstandingPrincipal} className="text-[14px]" />
                       </td>
                       <td className="px-5 py-3 text-right">
-                        <LoanStatusBadge status={l.status} />
+                        <span className="inline-flex items-center gap-2">
+                          {l.late && <LateBadge />}
+                          <LoanStatusBadge status={l.status} />
+                        </span>
                       </td>
                     </tr>
                   ))}

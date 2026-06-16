@@ -13,7 +13,7 @@ import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { FieldWrap, Input } from '@/components/ui/Field';
 import { Money } from '@/components/ui/Money';
-import { AccountStatusBadge, AccountTypeTag, LoanStatusBadge } from '@/components/ui/Badge';
+import { AccountStatusBadge, AccountTypeTag, LateBadge, LoanStatusBadge } from '@/components/ui/Badge';
 import { Spinner, ErrorState, EmptyState } from '@/components/ui/States';
 import { OpenAccountModal } from '@/components/modals/OpenAccountModal';
 import { useToast } from '@/components/Toast';
@@ -130,6 +130,7 @@ function ClientDetail({ id, firstName, lastName }: { id: string; firstName: stri
                       <span className="font-mono text-[12.5px] text-ink-soft">{l.id.slice(0, 10)}…</span>
                       <span className="flex items-center gap-3">
                         <Money amount={l.outstandingPrincipal} className="text-[14px]" />
+                        {l.late && <LateBadge />}
                         <LoanStatusBadge status={l.status} />
                       </span>
                     </Link>

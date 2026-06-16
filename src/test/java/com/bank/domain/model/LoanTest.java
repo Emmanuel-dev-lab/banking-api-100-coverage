@@ -58,10 +58,11 @@ class LoanTest {
     void restore_rebuildsState() {
         Loan original = loan(120000, 0.12, 6);
         Loan restored = Loan.restore("l1", "c1", "a1", Money.of(120000), 0.12, 6, START,
-                Money.of(60000), LoanStatus.ACTIVE, original.schedule());
+                Money.of(60000), LoanStatus.ACTIVE, original.schedule(), true);
         assertThat(restored.outstandingPrincipal().amount()).isEqualTo(60000);
         assertThat(restored.schedule()).hasSize(6);
         assertThat(restored.status()).isEqualTo(LoanStatus.ACTIVE);
+        assertThat(restored.late()).isTrue();
     }
 
     // L5
@@ -135,25 +136,46 @@ class LoanTest {
 
     // L12
     @Test
-    void isLate_overdueUnpaid_true() {
+    void refreshOverdue_overdueUnpaid_true() {
         Loan l = loan(120000, 0.0, 6);
         // premiere echeance 2026-02-01, aujourd'hui apres
-        assertThat(l.isLate(LocalDate.of(2026, 3, 1))).isTrue();
+        assertThat(l.refreshOverdue(LocalDate.of(2026, 3, 1))).isTrue();
+        assertThat(l.late()).isTrue();
     }
 
     // L13 : sous-condition !paid fausse + sortie de boucle false
     @Test
-    void isLate_allPaid_false() {
+    void refreshOverdue_allPaid_false() {
         Loan l = loan(120000, 0.0, 6);
         l.schedule().forEach(Installment::markPaid);
-        assertThat(l.isLate(LocalDate.of(2030, 1, 1))).isFalse();
+        assertThat(l.refreshOverdue(LocalDate.of(2030, 1, 1))).isFalse();
+        assertThat(l.late()).isFalse();
     }
 
     // L14 : echeance non echue (dueDate future)
     @Test
-    void isLate_futureDue_false() {
+    void refreshOverdue_futureDue_false() {
         Loan l = loan(120000, 0.0, 6);
-        assertThat(l.isLate(LocalDate.of(2026, 1, 15))).isFalse();
+        assertThat(l.refreshOverdue(LocalDate.of(2026, 1, 15))).isFalse();
+    }
+
+    // L15 : un pret solde n'est jamais en retard (branche status != ACTIVE)
+    @Test
+    void refreshOverdue_paidOff_false() {
+        Loan l = loan(120000, 0.0, 6);
+        l.repay(Money.of(120000));
+        assertThat(l.status()).isEqualTo(LoanStatus.PAID_OFF);
+        assertThat(l.refreshOverdue(LocalDate.of(2030, 1, 1))).isFalse();
+    }
+
+    // L16 : repay partiel marque les echeances couvertes par le capital rembourse
+    @Test
+    void repay_partial_marksCoveredInstallments() {
+        Loan l = loan(120000, 0.0, 6); // 6 x 20000 de capital
+        l.repay(Money.of(40000));       // couvre exactement 2 echeances
+        assertThat(l.schedule().get(0).paid()).isTrue();
+        assertThat(l.schedule().get(1).paid()).isTrue();
+        assertThat(l.schedule().get(2).paid()).isFalse();
     }
 
     @Test

@@ -172,15 +172,15 @@ Champs : `id`, `clientId`, `AccountType type`, `Money balance`, `AccountStatus s
 - `double annualRate` (ex. 0.03).
 - `canWithdraw(Money amt)` : autorisé si `balance - amt >= 0` (jamais de découvert).
   - Branches : vrai / faux.
-- `applyInterest()` : `interest = floor(balance * annualRate)` ; si `interest > 0` → `deposit`.
-  - Branches : `interest > 0` vrai/faux (taux 0 ou solde 0 → pas de dépôt).
+- `applyMonthlyInterest()` : `interest = floor(balance * annualRate / 12)` ; si `interest > 0` → `deposit` et renvoie le montant crédité (sinon `Money.ZERO`). Appelé par le job de capitalisation (`InterestService`), qui enregistre une écriture `INTEREST`.
+  - Branches : `interest > 0` vrai/faux (taux 0, solde faible ou nul → pas de dépôt).
 
 ### 4.7 `Transaction` (écriture de registre — historique)
-`enum TransactionType { DEPOSIT, WITHDRAWAL, TRANSFER_IN, TRANSFER_OUT, LOAN_DISBURSEMENT, LOAN_REPAYMENT }`
+`enum TransactionType { DEPOSIT, WITHDRAWAL, TRANSFER_IN, TRANSFER_OUT, LOAN_DISBURSEMENT, LOAN_REPAYMENT, INTEREST }`
 Champs : `id`, `accountId`, `TransactionType type`, `Money amount`, `Instant date` (horodatage chronologique : ordonne les écritures même au sein d'une journée), `relatedAccountId` (nullable). Immuable. Pas de logique branchante.
 
 ### 4.8 `Loan` (agrégat prêt)
-Champs : `id`, `clientId`, `accountId` (compte de décaissement/remboursement), `Money principal`, `double annualRate`, `int termMonths`, `LoanStatus status`, `Money outstandingPrincipal`, `List<Installment> schedule`, `LocalDate startDate`.
+Champs : `id`, `clientId`, `accountId` (compte de décaissement/remboursement), `Money principal`, `double annualRate`, `int termMonths`, `LoanStatus status`, `Money outstandingPrincipal`, `List<Installment> schedule`, `LocalDate startDate`, `boolean late` (marqueur de retard posé par le job).
 
 `enum LoanStatus { ACTIVE, PAID_OFF }`
 
@@ -201,15 +201,17 @@ Boucle sur `termMonths` :
 - chaque `Installment` : `dueDate`, `amount` (mensualité ; **dernière échéance** ajustée pour solder exactement le capital + intérêts résiduels), `principalPart`, `interestPart`, `paid=false`.
 - Branches : boucle `for` (corps exécuté / sortie) ; `i == termMonths - 1` (dernière échéance, ajustement) vrai/faux.
 
-#### 4.8.4 Remboursement `repay(Money amt, LocalDate date)`
+#### 4.8.4 Remboursement `repay(Money amt)`
 - Si `status == PAID_OFF` → `LoanAlreadyClosedException`.
-- Réduit `outstandingPrincipal` du capital remboursé.
+- Réduit `outstandingPrincipal` du capital remboursé (sur-paiement borné au capital dû).
 - Si `outstandingPrincipal <= 0` après remboursement → `status = PAID_OFF`.
-- Branches : `status == PAID_OFF` v/f ; `outstandingPrincipal.amount <= 0` v/f.
+- Marque payées les échéances dont la part de capital cumulée est couverte par le capital remboursé (`markCoveredInstallments`).
+- Branches : `status == PAID_OFF` v/f ; `outstandingPrincipal.amount <= 0` v/f ; boucle de marquage (`cumul <= remboursé` v/f).
 
-#### 4.8.5 Retard `isLate(LocalDate today)`
-- Vrai si une `Installment` non payée a `dueDate < today`.
-- Branches : boucle ; condition `!inst.paid && inst.dueDate.isBefore(today)` (2 sous-conditions) ; retour anticipé `true` vs `false` final.
+#### 4.8.5 Marquage du retard `refreshOverdue(LocalDate today)`
+- Pose `late = (status == ACTIVE) && une Installment non payée a dueDate < today`. Un prêt soldé n'est jamais en retard. Renvoie l'état de retard.
+- Appelé par le job `LoanService.flagOverdueLoans()` (et l'endpoint admin).
+- Branches : `status == ACTIVE` v/f ; condition `!inst.paid && inst.dueDate.isBefore(today)` (2 sous-conditions) ; retour anticipé `true` vs `false` final.
 
 ### 4.9 `Installment`
 Champs : `index`, `dueDate`, `Money amount`, `Money principalPart`, `Money interestPart`, `boolean paid`. `markPaid()` → `paid = true` (aucune branche).
@@ -305,6 +307,8 @@ Chaque service est `@Transactional`. Les méthodes valident **puis** mutent. Les
 | POST | `/api/loans` | owner/ADMIN | `LoanService.requestLoan` |
 | GET | `/api/loans/{id}/schedule` | owner/ADMIN | `loan.schedule()` (lecture directe de l'agrégat) |
 | POST | `/api/loans/{id}/repay` | owner/ADMIN | `LoanService.repayLoan` |
+| POST | `/api/admin/jobs/interest` | ADMIN | `InterestService.capitalizeSavings` (déclenchement manuel) |
+| POST | `/api/admin/jobs/overdue` | ADMIN | `LoanService.flagOverdueLoans` (déclenchement manuel) |
 
 ### 6.2 Filtre d'authentification (`JwtAuthFilter` — logique branchante à couvrir si écrite par nous)
 > Décision : autorisation gérée **explicitement dans les controllers** via `AuthorizationGuard` (logique pure, 100 % testable), plutôt que dans un filtre Spring Security difficile à couvrir. Le controller :
@@ -404,8 +408,9 @@ Mappe chaque `BankException` → statut HTTP + corps `{code, message}`. Un `@Exc
 |---|---|---|---|
 | SA1 | `canWithdraw` solde suffisant | `withdraw_enough_ok` | ok |
 | SA2 | `canWithdraw` solde insuffisant | `withdraw_insufficient_throws` | `InsufficientFundsException` |
-| SA3 | `applyInterest` interest > 0 | `applyInterest_positive_credits` | solde augmenté |
-| SA4 | `applyInterest` interest = 0 (taux 0 ou solde 0) | `applyInterest_zero_noChange` | solde inchangé |
+| SA3 | `applyMonthlyInterest` interest > 0 | `savingsApplyMonthlyInterest_positive_credits` | solde augmenté, montant crédité renvoyé |
+| SA4 | `applyMonthlyInterest` taux 0 | `savingsApplyMonthlyInterest_zero_noChange` | solde inchangé, 0 renvoyé |
+| SA5 | `applyMonthlyInterest` intérêt < 1 unité (arrondi) | `savingsApplyMonthlyInterest_belowOneUnit_noChange` | solde inchangé |
 
 ### 9.7 `Loan.create`
 | # | Branche | Cas | Attendu |
