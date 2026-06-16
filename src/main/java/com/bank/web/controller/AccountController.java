@@ -9,6 +9,11 @@ import com.bank.web.RequestAuth;
 import com.bank.web.dto.AccountResponse;
 import com.bank.web.dto.AmountRequest;
 import com.bank.web.dto.TransactionResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +27,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/accounts")
+@Tag(name = "Comptes", description = "Consultation, depots, retraits et historique")
 public class AccountController {
 
     private final AccountService accountService;
@@ -36,16 +42,29 @@ public class AccountController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Consulter un compte", description = "Renvoie le solde et le statut du compte.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Compte trouve"),
+            @ApiResponse(responseCode = "403", description = "Acces au compte d'autrui interdit"),
+            @ApiResponse(responseCode = "404", description = "Compte inconnu")
+    })
     public ResponseEntity<AccountResponse> getAccount(
-            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String id) {
         Account account = authorize(authorization, id);
         return ResponseEntity.ok(AccountResponse.from(account));
     }
 
     @PostMapping("/{id}/deposit")
+    @Operation(summary = "Deposer", description = "Credite le compte d'un montant strictement positif (XAF entier).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Depot effectue, nouveau solde renvoye"),
+            @ApiResponse(responseCode = "400", description = "Montant <= 0"),
+            @ApiResponse(responseCode = "409", description = "Compte gele ou ferme"),
+            @ApiResponse(responseCode = "404", description = "Compte inconnu")
+    })
     public ResponseEntity<AccountResponse> deposit(
-            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String id,
             @RequestBody AmountRequest request) {
         authorize(authorization, id);
@@ -54,8 +73,18 @@ public class AccountController {
     }
 
     @PostMapping("/{id}/withdraw")
+    @Operation(summary = "Retirer",
+            description = "Debite le compte. Un compte courant autorise le decouvert jusqu'a son plafond ; "
+                    + "un compte epargne refuse tout solde negatif.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Retrait effectue"),
+            @ApiResponse(responseCode = "400", description = "Montant <= 0"),
+            @ApiResponse(responseCode = "409", description = "Compte gele ou ferme"),
+            @ApiResponse(responseCode = "422", description = "Fonds/decouvert insuffisants"),
+            @ApiResponse(responseCode = "404", description = "Compte inconnu")
+    })
     public ResponseEntity<AccountResponse> withdraw(
-            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String id,
             @RequestBody AmountRequest request) {
         authorize(authorization, id);
@@ -64,8 +93,13 @@ public class AccountController {
     }
 
     @GetMapping("/{id}/transactions")
+    @Operation(summary = "Historique", description = "Liste les ecritures du compte (depots, retraits, virements, prets).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Historique renvoye"),
+            @ApiResponse(responseCode = "404", description = "Compte inconnu")
+    })
     public ResponseEntity<List<TransactionResponse>> transactions(
-            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String id) {
         authorize(authorization, id);
         List<TransactionResponse> history = accountService.getHistory(id).stream()

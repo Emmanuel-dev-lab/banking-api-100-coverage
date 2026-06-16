@@ -12,6 +12,11 @@ import com.bank.web.dto.AccountResponse;
 import com.bank.web.dto.ClientResponse;
 import com.bank.web.dto.CreateClientRequest;
 import com.bank.web.dto.OpenAccountRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/clients")
+@Tag(name = "Clients", description = "Gestion des clients et ouverture de comptes")
 public class ClientController {
 
     private final ClientService clientService;
@@ -40,8 +46,15 @@ public class ClientController {
     }
 
     @PostMapping
+    @Operation(summary = "Creer un client", description = "Reserve aux ADMIN. Cree le client "
+            + "et son compte utilisateur CLIENT associe.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Client cree"),
+            @ApiResponse(responseCode = "401", description = "Jeton absent ou invalide"),
+            @ApiResponse(responseCode = "403", description = "Role ADMIN requis")
+    })
     public ResponseEntity<ClientResponse> create(
-            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @RequestBody CreateClientRequest request) {
         TokenClaims claims = authService.authenticate(RequestAuth.bearer(authorization));
         guard.requireAdmin(claims);
@@ -51,8 +64,14 @@ public class ClientController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Consulter un client", description = "Accessible au client proprietaire ou a un ADMIN.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Client trouve"),
+            @ApiResponse(responseCode = "403", description = "Acces au client d'autrui interdit"),
+            @ApiResponse(responseCode = "404", description = "Client inconnu")
+    })
     public ResponseEntity<ClientResponse> get(
-            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String id) {
         TokenClaims claims = authService.authenticate(RequestAuth.bearer(authorization));
         Client client = clientService.getClient(id);
@@ -61,8 +80,17 @@ public class ClientController {
     }
 
     @PostMapping("/{clientId}/accounts")
+    @Operation(summary = "Ouvrir un compte",
+            description = "Ouvre un compte CURRENT (plafond de decouvert) ou SAVINGS (taux d'interet) "
+                    + "pour le client. Le solde initial est 0.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Compte ouvert"),
+            @ApiResponse(responseCode = "400", description = "Plafond/taux negatif"),
+            @ApiResponse(responseCode = "403", description = "Acces interdit"),
+            @ApiResponse(responseCode = "404", description = "Client inconnu")
+    })
     public ResponseEntity<AccountResponse> openAccount(
-            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String clientId,
             @RequestBody OpenAccountRequest request) {
         TokenClaims claims = authService.authenticate(RequestAuth.bearer(authorization));
