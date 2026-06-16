@@ -1,0 +1,83 @@
+package com.bank.application.service;
+
+import com.bank.domain.exception.AccountNotFoundException;
+import com.bank.domain.exception.ClientNotFoundException;
+import com.bank.domain.exception.LoanNotFoundException;
+import com.bank.domain.model.Account;
+import com.bank.domain.model.Installment;
+import com.bank.domain.model.Loan;
+import com.bank.domain.model.Money;
+import com.bank.domain.model.Transaction;
+import com.bank.domain.model.TransactionType;
+import com.bank.domain.port.AccountRepository;
+import com.bank.domain.port.ClientRepository;
+import com.bank.domain.port.Clock;
+import com.bank.domain.port.IdGenerator;
+import com.bank.domain.port.LoanRepository;
+import com.bank.domain.port.TransactionRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+public class LoanService {
+
+    private final LoanRepository loanRepository;
+    private final ClientRepository clientRepository;
+    private final AccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
+    private final IdGenerator idGenerator;
+    private final Clock clock;
+
+    public LoanService(LoanRepository loanRepository, ClientRepository clientRepository,
+                       AccountRepository accountRepository, TransactionRepository transactionRepository,
+                       IdGenerator idGenerator, Clock clock) {
+        this.loanRepository = loanRepository;
+        this.clientRepository = clientRepository;
+        this.accountRepository = accountRepository;
+        this.transactionRepository = transactionRepository;
+        this.idGenerator = idGenerator;
+        this.clock = clock;
+    }
+
+    @Transactional
+    public Loan requestLoan(String clientId, String accountId, long principal, double annualRate, int termMonths) {
+        if (clientRepository.findById(clientId).isEmpty()) {
+            throw new ClientNotFoundException(clientId);
+        }
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccountNotFoundException(accountId));
+        Loan loan = Loan.create(idGenerator.newId(), clientId, accountId,
+                Money.of(principal), annualRate, termMonths, clock.today());
+        account.deposit(loan.principal());
+        accountRepository.save(account);
+        loanRepository.save(loan);
+        transactionRepository.save(new Transaction(idGenerator.newId(), accountId,
+                TransactionType.LOAN_DISBURSEMENT, loan.principal(), clock.today(), null));
+        return loan;
+    }
+
+    public Loan getLoan(String loanId) {
+        return loanRepository.findById(loanId)
+                .orElseThrow(() -> new LoanNotFoundException(loanId));
+    }
+
+    @Transactional
+    public void repayLoan(String loanId, long amount) {
+        Money money = Money.ofPositive(amount);
+        Loan loan = getLoan(loanId);
+        loan.repay(money);
+        Account account = accountRepository.findById(loan.accountId())
+                .orElseThrow(() -> new AccountNotFoundException(loan.accountId()));
+        account.withdraw(money);
+        accountRepository.save(account);
+        loanRepository.save(loan);
+        transactionRepository.save(new Transaction(idGenerator.newId(), loan.accountId(),
+                TransactionType.LOAN_REPAYMENT, money, clock.today(), null));
+    }
+
+    public List<Installment> getSchedule(String loanId) {
+        return getLoan(loanId).schedule();
+    }
+}
