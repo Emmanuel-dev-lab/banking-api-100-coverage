@@ -197,6 +197,31 @@ class WebEndpointsTest {
                 .isInstanceOf(ForbiddenException.class);
     }
 
+    // listing clients (ADMIN)
+    @Test
+    void listClients_admin_200() {
+        var response = clientController.list(adminToken, 0, 20);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().totalElements()).isGreaterThanOrEqualTo(1);
+        assertThat(response.getBody().page()).isZero();
+    }
+
+    // listing tous comptes (ADMIN)
+    @Test
+    void listAccounts_admin_200() {
+        var response = accountController.list(adminToken, 0, 20);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().totalElements()).isGreaterThanOrEqualTo(1);
+    }
+
+    // listing comptes d'un client (owner)
+    @Test
+    void listClientAccounts_owner_200() {
+        var response = clientController.listAccounts(clientToken, client.id(), 0, 20);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().content()).isNotEmpty();
+    }
+
     // accesseur compte (couvre GET /accounts/{id})
     @Test
     void getAccount_owner_200() {

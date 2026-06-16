@@ -6,6 +6,8 @@ import com.bank.domain.model.Account;
 import com.bank.domain.model.AccountType;
 import com.bank.domain.model.CurrentAccount;
 import com.bank.domain.model.Money;
+import com.bank.domain.model.Page;
+import com.bank.domain.model.PageRequest;
 import com.bank.domain.model.SavingsAccount;
 import com.bank.domain.model.Transaction;
 import com.bank.domain.model.TransactionType;
@@ -87,6 +89,21 @@ public class AccountService {
     public List<Transaction> getHistory(String accountId) {
         getAccount(accountId);
         return transactionRepository.findByAccountId(accountId);
+    }
+
+    public Page<Account> listAccounts(int page, int size) {
+        PageRequest pr = new PageRequest(page, size);
+        return new Page<>(accountRepository.findAll(pr.offset(), pr.size()),
+                accountRepository.count(), pr.page(), pr.size());
+    }
+
+    public Page<Account> listClientAccounts(String clientId, int page, int size) {
+        if (clientRepository.findById(clientId).isEmpty()) {
+            throw new ClientNotFoundException(clientId);
+        }
+        PageRequest pr = new PageRequest(page, size);
+        return new Page<>(accountRepository.findByClientId(clientId, pr.offset(), pr.size()),
+                accountRepository.countByClientId(clientId), pr.page(), pr.size());
     }
 
     private void record(String accountId, TransactionType type, Money amount, String relatedAccountId) {
