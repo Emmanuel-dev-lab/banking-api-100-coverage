@@ -118,7 +118,18 @@ class LoanTest {
     @Test
     void repay_full_paidOff() {
         Loan l = loan(100000, 0.0, 12);
-        l.repay(Money.of(100000));
+        Money applied = l.repay(Money.of(100000));
+        assertThat(applied.amount()).isEqualTo(100000);
+        assertThat(l.status()).isEqualTo(LoanStatus.PAID_OFF);
+    }
+
+    // L11b : sur-paiement borne au capital restant, renvoie le montant applique
+    @Test
+    void repay_overpayment_clampedToOutstanding() {
+        Loan l = loan(100000, 0.0, 12);
+        Money applied = l.repay(Money.of(150000));
+        assertThat(applied.amount()).isEqualTo(100000);
+        assertThat(l.outstandingPrincipal().amount()).isZero();
         assertThat(l.status()).isEqualTo(LoanStatus.PAID_OFF);
     }
 

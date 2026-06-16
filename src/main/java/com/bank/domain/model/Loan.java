@@ -109,14 +109,21 @@ public class Loan {
         }
     }
 
-    public void repay(Money amount) {
+    /**
+     * Impute un remboursement sur le capital restant et renvoie le montant
+     * reellement applique. Un sur-paiement est borne au capital du :
+     * le compte ne doit etre debite que de ce qui etait reellement du.
+     */
+    public Money repay(Money amount) {
         if (status == LoanStatus.PAID_OFF) {
             throw new LoanAlreadyClosedException(id);
         }
-        outstandingPrincipal = outstandingPrincipal.minus(amount);
+        Money applied = amount.isGreaterThan(outstandingPrincipal) ? outstandingPrincipal : amount;
+        outstandingPrincipal = outstandingPrincipal.minus(applied);
         if (outstandingPrincipal.amount() <= 0) {
             status = LoanStatus.PAID_OFF;
         }
+        return applied;
     }
 
     public boolean isLate(LocalDate today) {

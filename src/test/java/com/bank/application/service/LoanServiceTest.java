@@ -2,6 +2,7 @@ package com.bank.application.service;
 
 import com.bank.domain.exception.AccountNotFoundException;
 import com.bank.domain.exception.ClientNotFoundException;
+import com.bank.domain.exception.ForbiddenException;
 import com.bank.domain.exception.InvalidAmountException;
 import com.bank.domain.exception.LoanAlreadyClosedException;
 import com.bank.domain.exception.LoanNotFoundException;
@@ -58,6 +59,14 @@ class LoanServiceTest {
                 .isInstanceOf(AccountNotFoundException.class);
     }
 
+    // LS2b : compte n'appartenant pas au client -> 403
+    @Test
+    void request_accountNotOwnedByClient_forbidden() {
+        accounts.save(new CurrentAccount("a2", "other", Money.of(0), 1_000_000));
+        assertThatThrownBy(() -> service.requestLoan("c1", "a2", 120000, 0.12, 12))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
     // LS3
     @Test
     void request_valid_disbursesAndSchedules() {
@@ -97,6 +106,16 @@ class LoanServiceTest {
         Loan loan = request();
         service.repayLoan(loan.id(), 20000);
         assertThat(loan.outstandingPrincipal().amount()).isEqualTo(100000);
+    }
+
+    // LS7c : sur-paiement borne au capital du ; le compte n'est debite que du reel
+    @Test
+    void repay_overpayment_clampedToOutstanding() {
+        Loan loan = request();
+        service.repayLoan(loan.id(), 500000);
+        assertThat(loan.outstandingPrincipal().amount()).isZero();
+        assertThat(loan.status()).isEqualTo(LoanStatus.PAID_OFF);
+        assertThat(accounts.findById("a1").orElseThrow().balance().amount()).isZero();
     }
 
     // LS7b : pret referencant un compte absent -> 404 (chemin defensif)

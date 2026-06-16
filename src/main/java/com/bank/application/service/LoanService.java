@@ -2,6 +2,7 @@ package com.bank.application.service;
 
 import com.bank.domain.exception.AccountNotFoundException;
 import com.bank.domain.exception.ClientNotFoundException;
+import com.bank.domain.exception.ForbiddenException;
 import com.bank.domain.exception.LoanNotFoundException;
 import com.bank.domain.model.Account;
 import com.bank.domain.model.Installment;
@@ -48,8 +49,11 @@ public class LoanService {
         if (clientRepository.findById(clientId).isEmpty()) {
             throw new ClientNotFoundException(clientId);
         }
-        Account account = accountRepository.findById(accountId)
+        Account account = accountRepository.findByIdForUpdate(accountId)
                 .orElseThrow(() -> new AccountNotFoundException(accountId));
+        if (!account.clientId().equals(clientId)) {
+            throw new ForbiddenException("account does not belong to client");
+        }
         Loan loan = Loan.create(idGenerator.newId(), clientId, accountId,
                 Money.of(principal), annualRate, termMonths, clock.today());
         account.deposit(loan.principal());
@@ -69,14 +73,14 @@ public class LoanService {
     public void repayLoan(String loanId, long amount) {
         Money money = Money.ofPositive(amount);
         Loan loan = getLoan(loanId);
-        loan.repay(money);
-        Account account = accountRepository.findById(loan.accountId())
+        Money applied = loan.repay(money);
+        Account account = accountRepository.findByIdForUpdate(loan.accountId())
                 .orElseThrow(() -> new AccountNotFoundException(loan.accountId()));
-        account.withdraw(money);
+        account.withdraw(applied);
         accountRepository.save(account);
         loanRepository.save(loan);
         transactionRepository.save(new Transaction(idGenerator.newId(), loan.accountId(),
-                TransactionType.LOAN_REPAYMENT, money, clock.today(), null));
+                TransactionType.LOAN_REPAYMENT, applied, clock.today(), null));
     }
 
     public List<Installment> getSchedule(String loanId) {
