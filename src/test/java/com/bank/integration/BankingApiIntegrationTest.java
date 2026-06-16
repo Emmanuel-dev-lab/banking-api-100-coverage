@@ -59,4 +59,17 @@ class BankingApiIntegrationTest {
         assertThat(loanService.getSchedule(loan.id())).hasSize(12);
         assertThat(loanService.getLoan(loan.id()).outstandingPrincipal().amount()).isEqualTo(100000);
     }
+
+    @Test
+    void currentAccountOverdraft_negativeBalance_reloadsWithoutError() {
+        Client client = clientService.createClient("Neg", "Test", "neg", "pw");
+        Account current = accountService.openAccount(client.id(), AccountType.CURRENT, 100000, 0.0);
+        accountService.deposit(current.id(), 1000);
+        // retrait dans la limite de decouvert -> solde negatif (-2000)
+        accountService.withdraw(current.id(), 3000);
+
+        // relecture via l'adaptateur JPA reel : ne doit pas lever d'exception
+        assertThat(accountService.getAccount(current.id()).balance().amount()).isEqualTo(-2000);
+        assertThat(accountService.listAccounts(0, 100).content()).isNotEmpty();
+    }
 }

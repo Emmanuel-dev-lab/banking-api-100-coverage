@@ -19,6 +19,15 @@ public record Money(long amount) {
         return new Money(amount);
     }
 
+    /**
+     * Reconstitue un montant deja calcule/persiste, sans contrainte de signe.
+     * A utiliser pour relire un solde (potentiellement negatif : decouvert) ou
+     * un capital restant. Ne pas utiliser pour valider une entree utilisateur.
+     */
+    public static Money fromStored(long amount) {
+        return new Money(amount);
+    }
+
     /** Cree un montant strictement positif (operation d'argent). */
     public static Money ofPositive(long amount) {
         if (amount <= 0) {

@@ -64,11 +64,12 @@ public class AccountRepositoryAdapter implements AccountRepository {
     }
 
     private Account toDomain(AccountJpa e) {
+        // Le solde peut etre negatif (decouvert d'un compte courant) -> fromStored.
         if (e.getType() == AccountType.CURRENT) {
-            return new CurrentAccount(e.getId(), e.getClientId(), Money.of(e.getBalance()),
+            return new CurrentAccount(e.getId(), e.getClientId(), Money.fromStored(e.getBalance()),
                     e.getStatus(), e.getOverdraftLimit());
         }
-        return new SavingsAccount(e.getId(), e.getClientId(), Money.of(e.getBalance()),
+        return new SavingsAccount(e.getId(), e.getClientId(), Money.fromStored(e.getBalance()),
                 e.getStatus(), e.getAnnualRate());
     }
 }

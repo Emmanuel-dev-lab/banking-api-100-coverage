@@ -62,6 +62,12 @@ class MoneyTest {
         assertThat(Money.of(10).isLessThan(Money.of(5))).isFalse();
     }
 
+    // fromStored : reconstitution, accepte les negatifs (solde en decouvert)
+    @Test
+    void fromStored_negative_ok() {
+        assertThat(Money.fromStored(-2000).amount()).isEqualTo(-2000);
+    }
+
     @Test
     void plus_addsAmounts() {
         assertThat(Money.of(10).plus(Money.of(5)).amount()).isEqualTo(15);

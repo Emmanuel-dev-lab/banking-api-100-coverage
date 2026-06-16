@@ -65,8 +65,9 @@ public class LoanRepositoryAdapter implements LoanRepository {
                 .map(i -> new Installment(i.getIdx(), i.getDueDate(), Money.of(i.getAmount()),
                         Money.of(i.getPrincipalPart()), Money.of(i.getInterestPart()), i.isPaid()))
                 .toList();
+        // Le capital restant peut etre <= 0 (dernier remboursement) -> fromStored.
         return Loan.restore(e.getId(), e.getClientId(), e.getAccountId(), Money.of(e.getPrincipal()),
                 e.getAnnualRate(), e.getTermMonths(), e.getStartDate(),
-                Money.of(e.getOutstandingPrincipal()), e.getStatus(), schedule);
+                Money.fromStored(e.getOutstandingPrincipal()), e.getStatus(), schedule);
     }
 }
