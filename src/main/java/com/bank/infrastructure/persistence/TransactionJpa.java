@@ -7,7 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import java.time.LocalDate;
+import java.time.Instant;
 
 @Entity
 @Table(name = "transactions")
@@ -19,14 +19,14 @@ public class TransactionJpa {
     @Enumerated(EnumType.STRING)
     private TransactionType type;
     private long amount;
-    private LocalDate date;
+    private Instant date;
     private String relatedAccountId;
 
     protected TransactionJpa() {
     }
 
     public TransactionJpa(String id, String accountId, TransactionType type, long amount,
-                          LocalDate date, String relatedAccountId) {
+                          Instant date, String relatedAccountId) {
         this.id = id;
         this.accountId = accountId;
         this.type = type;
@@ -51,7 +51,7 @@ public class TransactionJpa {
         return amount;
     }
 
-    public LocalDate getDate() {
+    public Instant getDate() {
         return date;
     }
 

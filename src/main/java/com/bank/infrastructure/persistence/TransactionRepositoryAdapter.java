@@ -3,6 +3,7 @@ package com.bank.infrastructure.persistence;
 import com.bank.domain.model.Money;
 import com.bank.domain.model.Transaction;
 import com.bank.domain.port.TransactionRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -23,10 +24,15 @@ public class TransactionRepositoryAdapter implements TransactionRepository {
     }
 
     @Override
-    public List<Transaction> findByAccountId(String accountId) {
-        return jpa.findByAccountId(accountId).stream()
+    public List<Transaction> findByAccountId(String accountId, int offset, int limit) {
+        return jpa.findByAccountIdOrderByDateDescIdDesc(accountId, PageRequest.of(offset / limit, limit)).stream()
                 .map(e -> new Transaction(e.getId(), e.getAccountId(), e.getType(),
                         Money.of(e.getAmount()), e.getDate(), e.getRelatedAccountId()))
                 .toList();
+    }
+
+    @Override
+    public long countByAccountId(String accountId) {
+        return jpa.countByAccountId(accountId);
     }
 }
