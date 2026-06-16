@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Money } from '@/components/ui/Money';
-import { LoanStatusBadge } from '@/components/ui/Badge';
+import { LateBadge, LoanStatusBadge } from '@/components/ui/Badge';
 import { Spinner, ErrorState, EmptyState } from '@/components/ui/States';
 import { Pagination } from '@/components/ui/Pagination';
 import { RequestLoanModal } from '@/components/modals/RequestLoanModal';
@@ -52,7 +52,10 @@ export function LoansPage() {
                     <span className="font-mono text-[12px] text-ink-faint">
                       {loan.id.slice(0, 8)}…
                     </span>
-                    <LoanStatusBadge status={loan.status} />
+                    <span className="flex items-center gap-2">
+                      {loan.late && <LateBadge />}
+                      <LoanStatusBadge status={loan.status} />
+                    </span>
                   </div>
                   <p className="mt-4 text-[13px] text-ink-faint">Capital restant dû</p>
                   <Money amount={loan.outstandingPrincipal} className="mt-0.5 text-[22px]" />

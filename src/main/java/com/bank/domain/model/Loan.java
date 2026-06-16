@@ -20,6 +20,8 @@ public class Loan {
     private final List<Installment> schedule = new ArrayList<>();
     private Money outstandingPrincipal;
     private LoanStatus status;
+    /** Marque "en retard" : au moins une echeance echue non couverte. Pose par le job. */
+    private boolean late;
 
     private Loan(String id, String clientId, String accountId, Money principal,
                  double annualRate, int termMonths, LocalDate startDate) {
@@ -54,11 +56,13 @@ public class Loan {
     /** Reconstitution depuis la persistance (etat complet, sans recalcul). */
     public static Loan restore(String id, String clientId, String accountId, Money principal,
                                double annualRate, int termMonths, LocalDate startDate,
-                               Money outstandingPrincipal, LoanStatus status, List<Installment> schedule) {
+                               Money outstandingPrincipal, LoanStatus status, List<Installment> schedule,
+                               boolean late) {
         Loan loan = new Loan(id, clientId, accountId, principal, annualRate, termMonths, startDate);
         loan.outstandingPrincipal = outstandingPrincipal;
         loan.status = status;
         loan.schedule.addAll(schedule);
+        loan.late = late;
         return loan;
     }
 
@@ -123,16 +127,45 @@ public class Loan {
         if (outstandingPrincipal.amount() <= 0) {
             status = LoanStatus.PAID_OFF;
         }
+        markCoveredInstallments();
         return applied;
     }
 
-    public boolean isLate(LocalDate today) {
+    /**
+     * Marque payees les echeances dont la part de capital cumulee est couverte
+     * par le capital deja rembourse (principal - capital restant du).
+     */
+    private void markCoveredInstallments() {
+        long repaidPrincipal = principal.amount() - outstandingPrincipal.amount();
+        long cumulative = 0;
+        for (Installment installment : schedule) {
+            cumulative += installment.principalPart().amount();
+            if (cumulative <= repaidPrincipal) {
+                installment.markPaid();
+            }
+        }
+    }
+
+    private boolean hasOverdueInstallment(LocalDate today) {
         for (Installment installment : schedule) {
             if (!installment.paid() && installment.dueDate().isBefore(today)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Recalcule le marqueur de retard a la date donnee. Un pret solde n'est
+     * jamais en retard. Renvoie l'etat de retard apres mise a jour.
+     */
+    public boolean refreshOverdue(LocalDate today) {
+        late = status == LoanStatus.ACTIVE && hasOverdueInstallment(today);
+        return late;
+    }
+
+    public boolean late() {
+        return late;
     }
 
     public String id() {

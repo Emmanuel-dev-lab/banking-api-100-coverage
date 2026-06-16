@@ -104,20 +104,31 @@ class AccountTest {
                 .isInstanceOf(InsufficientFundsException.class);
     }
 
-    // SA3
+    // SA3 : interets mensuels = floor(solde * tauxAnnuel/12)
     @Test
-    void savingsApplyInterest_positive_credits() {
-        SavingsAccount a = savings(1000, 0.05);
-        a.applyInterest();
-        assertThat(a.balance().amount()).isEqualTo(1050);
+    void savingsApplyMonthlyInterest_positive_credits() {
+        SavingsAccount a = savings(120000, 0.12); // 120000 * 0.01 = 1200
+        Money credited = a.applyMonthlyInterest();
+        assertThat(credited.amount()).isEqualTo(1200);
+        assertThat(a.balance().amount()).isEqualTo(121200);
     }
 
-    // SA4
+    // SA4 : taux nul -> aucun credit, montant renvoye nul
     @Test
-    void savingsApplyInterest_zero_noChange() {
+    void savingsApplyMonthlyInterest_zero_noChange() {
         SavingsAccount a = savings(1000, 0.0);
-        a.applyInterest();
+        Money credited = a.applyMonthlyInterest();
+        assertThat(credited.amount()).isZero();
         assertThat(a.balance().amount()).isEqualTo(1000);
+    }
+
+    // SA5 : interet arrondi a l'inferieur, sous 1 unite -> aucun credit
+    @Test
+    void savingsApplyMonthlyInterest_belowOneUnit_noChange() {
+        SavingsAccount a = savings(100, 0.03); // 100 * 0.0025 = 0.25 -> floor 0
+        Money credited = a.applyMonthlyInterest();
+        assertThat(credited.amount()).isZero();
+        assertThat(a.balance().amount()).isEqualTo(100);
     }
 
     // reconstitution (persistance)

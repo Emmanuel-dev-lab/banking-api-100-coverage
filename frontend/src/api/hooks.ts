@@ -180,6 +180,25 @@ export function useAccountStatusAction() {
   });
 }
 
+export function useCapitalizeInterest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.capitalizeInterest(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['accounts'] });
+      qc.invalidateQueries({ queryKey: ['me'] });
+    },
+  });
+}
+
+export function useFlagOverdue() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.flagOverdue(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['loans'] }),
+  });
+}
+
 function invalidateAccount(qc: ReturnType<typeof useQueryClient>, accountId: string) {
   qc.invalidateQueries({ queryKey: keys.account(accountId) });
   qc.invalidateQueries({ queryKey: ['accounts', accountId, 'transactions'] });

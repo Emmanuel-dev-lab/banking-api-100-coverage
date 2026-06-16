@@ -11,6 +11,7 @@ public record LoanResponse(
         long principal,
         long outstandingPrincipal,
         String status,
+        boolean late,
         List<InstallmentResponse> schedule) {
 
     public static LoanResponse from(Loan loan) {
@@ -21,6 +22,7 @@ public record LoanResponse(
                 loan.principal().amount(),
                 loan.outstandingPrincipal().amount(),
                 loan.status().name(),
+                loan.late(),
                 loan.schedule().stream().map(InstallmentResponse::from).toList());
     }
 }

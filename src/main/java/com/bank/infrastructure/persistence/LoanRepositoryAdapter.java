@@ -28,7 +28,7 @@ public class LoanRepositoryAdapter implements LoanRepository {
                 .toList();
         jpa.save(new LoanJpa(loan.id(), loan.clientId(), loan.accountId(), loan.principal().amount(),
                 loan.annualRate(), loan.termMonths(), loan.status(),
-                loan.outstandingPrincipal().amount(), loan.startDate(), schedule));
+                loan.outstandingPrincipal().amount(), loan.startDate(), loan.late(), schedule));
     }
 
     @Override
@@ -68,6 +68,6 @@ public class LoanRepositoryAdapter implements LoanRepository {
         // Le capital restant peut etre <= 0 (dernier remboursement) -> fromStored.
         return Loan.restore(e.getId(), e.getClientId(), e.getAccountId(), Money.of(e.getPrincipal()),
                 e.getAnnualRate(), e.getTermMonths(), e.getStartDate(),
-                Money.fromStored(e.getOutstandingPrincipal()), e.getStatus(), schedule);
+                Money.fromStored(e.getOutstandingPrincipal()), e.getStatus(), schedule, e.isLate());
     }
 }
