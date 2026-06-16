@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bank}
+      POSTGRES_USER: ${POSTGRES_USER:-bank}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bank}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bank} -d ${POSTGRES_DB:-bank}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-bank}
+      DB_USERNAME: ${POSTGRES_USER:-bank}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-bank}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-please-0123456789abcdef}
+      JWT_TTL_SECONDS: ${JWT_TTL_SECONDS:-3600}
+      SEED_ENABLED: ${SEED_ENABLED:-true}
+    ports:
+      - "${API_PORT:-8080}:8080"
+
+volumes:
+  db_data:

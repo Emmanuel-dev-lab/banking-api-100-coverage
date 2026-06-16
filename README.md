@@ -56,6 +56,46 @@ mvn spring-boot:run
 
 Le rapport de couverture est généré dans `target/site/jacoco/index.html`.
 
+## Déploiement Docker / Coolify
+
+L'application tourne en deux profils :
+
+- **défaut** : H2 en mémoire (tests, dev rapide). Aucune config requise.
+- **`prod`** : PostgreSQL, configuré par variables d'environnement.
+
+### Local avec Docker Compose
+
+```bash
+cp .env.example .env      # adapter les secrets
+docker compose up --build
+```
+
+Démarre PostgreSQL (volume persistant `db_data`) + l'API en profil `prod` sur
+http://localhost:8080. Le **seed** s'exécute automatiquement au premier
+démarrage (idempotent : ignoré si l'admin existe déjà).
+
+### Coolify (VPS)
+
+1. Nouvelle ressource → **Docker Compose** (ou Dockerfile) pointant sur ce dépôt.
+2. Définir les variables d'environnement (voir `.env.example`) :
+   `POSTGRES_PASSWORD`, `JWT_SECRET` (long et aléatoire), éventuellement
+   `SEED_ENABLED=false` pour ne pas injecter les données de démo.
+3. Déployer. Coolify build l'image, lance Postgres + l'API, gère le volume et le
+   reverse-proxy/HTTPS.
+
+Variables reconnues : `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`,
+`JWT_TTL_SECONDS`, `SEED_ENABLED`, `SPRING_PROFILES_ACTIVE`.
+
+### Données de démonstration (seed)
+
+Quand `app.seed.enabled=true` (par défaut en `prod`), un jeu riche est créé au
+premier démarrage : **1 admin** (`admin` / `admin123`), **50 clients**
+(`client1..client50` / `client123`), chacun avec 1-3 comptes (courant + épargne),
+des dépôts/retraits/virements, et ~15 prêts avec échéanciers (certains
+partiellement remboursés). Le seed est **idempotent**.
+
+> Changer les mots de passe par défaut avant toute mise en production réelle.
+
 ## Documentation interactive (Swagger / OpenAPI)
 
 Une fois l'API lancée :
