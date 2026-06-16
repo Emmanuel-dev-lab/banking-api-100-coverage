@@ -44,6 +44,14 @@ public class ClientService {
                 .orElseThrow(() -> new ClientNotFoundException(id));
     }
 
+    @Transactional
+    public Client updateClient(String id, String firstName, String lastName) {
+        getClient(id); // 404 si inconnu
+        Client updated = new Client(id, firstName, lastName);
+        clientRepository.save(updated);
+        return updated;
+    }
+
     public Page<Client> listClients(int page, int size) {
         PageRequest pr = new PageRequest(page, size);
         return new Page<>(clientRepository.findAll(pr.offset(), pr.size()),

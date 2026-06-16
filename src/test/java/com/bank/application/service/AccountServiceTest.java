@@ -106,7 +106,7 @@ class AccountServiceTest {
         Account a = openCurrent();
         Account updated = service.deposit(a.id(), 100);
         assertThat(updated.balance().amount()).isEqualTo(100);
-        assertThat(transactions.findByAccountId(a.id())).hasSize(1);
+        assertThat(transactions.count()).isEqualTo(1);
     }
 
     // AC11
@@ -136,16 +136,78 @@ class AccountServiceTest {
     // AC14
     @Test
     void history_unknown_throws() {
-        assertThatThrownBy(() -> service.getHistory("nope"))
+        assertThatThrownBy(() -> service.listTransactions("nope", 0, 20))
                 .isInstanceOf(AccountNotFoundException.class);
     }
 
     // AC15
     @Test
-    void history_existing_returnsList() {
+    void history_existing_returnsPage() {
         Account a = openCurrent();
         service.deposit(a.id(), 100);
-        assertThat(service.getHistory(a.id())).hasSize(1);
+        var page = service.listTransactions(a.id(), 0, 20);
+        assertThat(page.content()).hasSize(1);
+        assertThat(page.totalElements()).isEqualTo(1);
+    }
+
+    // AC16 : historique pagine, ordre du plus recent au plus ancien
+    @Test
+    void history_paged_newestFirst() {
+        Account a = openCurrent();
+        service.deposit(a.id(), 100);   // txn 1
+        service.deposit(a.id(), 200);   // txn 2
+        service.deposit(a.id(), 300);   // txn 3 (la plus recente)
+        var page = service.listTransactions(a.id(), 0, 2);
+        assertThat(page.content()).hasSize(2);
+        assertThat(page.totalElements()).isEqualTo(3);
+        assertThat(page.totalPages()).isEqualTo(2);
+        assertThat(page.content().get(0).amount().amount()).isEqualTo(300);
+        assertThat(page.content().get(1).amount().amount()).isEqualTo(200);
+    }
+
+    // AC17 : geler un compte bloque les operations
+    @Test
+    void freeze_thenDeposit_throws() {
+        Account a = openCurrent();
+        Account frozen = service.freeze(a.id());
+        assertThat(frozen.status().name()).isEqualTo("FROZEN");
+        assertThatThrownBy(() -> service.deposit(a.id(), 100))
+                .isInstanceOf(com.bank.domain.exception.AccountNotActiveException.class);
+    }
+
+    // AC18 : fermer un compte solde
+    @Test
+    void close_zeroBalance_ok() {
+        Account a = openCurrent();
+        Account closed = service.close(a.id());
+        assertThat(closed.status().name()).isEqualTo("CLOSED");
+    }
+
+    // AC19 : fermer un compte non solde -> conflit
+    @Test
+    void close_nonZeroBalance_throws() {
+        Account a = openCurrent();
+        service.deposit(a.id(), 100);
+        assertThatThrownBy(() -> service.close(a.id()))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    // AC20 : reactiver un compte gele
+    @Test
+    void reactivate_frozen_returnsActive() {
+        Account a = openCurrent();
+        service.freeze(a.id());
+        Account active = service.reactivate(a.id());
+        assertThat(active.status().name()).isEqualTo("ACTIVE");
+    }
+
+    // AC21 : reactiver un compte ferme -> conflit
+    @Test
+    void reactivate_closed_throws() {
+        Account a = openCurrent();
+        service.close(a.id());
+        assertThatThrownBy(() -> service.reactivate(a.id()))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     // listing global pagine

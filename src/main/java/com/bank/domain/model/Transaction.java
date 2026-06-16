@@ -1,6 +1,6 @@
 package com.bank.domain.model;
 
-import java.time.LocalDate;
+import java.time.Instant;
 
 /** Ecriture de registre (historique). Immuable, sans logique branchante. */
 public record Transaction(
@@ -8,6 +8,6 @@ public record Transaction(
         String accountId,
         TransactionType type,
         Money amount,
-        LocalDate date,
+        Instant date,
         String relatedAccountId) {
 }

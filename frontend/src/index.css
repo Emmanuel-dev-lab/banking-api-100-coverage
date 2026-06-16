@@ -1,0 +1,118 @@
+@import 'tailwindcss';
+
+/*
+  Comptoir — systeme de design "registre de banque privee".
+  Fond papier chaud, encre vert-foret, accent laiton. Chiffres en
+  chasse fixe (Geist Mono) avec figures tabulaires pour l'alignement.
+*/
+@theme {
+  --color-paper: oklch(0.975 0.008 85);
+  --color-paper-raised: oklch(0.992 0.006 85);
+  --color-ink: oklch(0.22 0.012 75);
+  --color-ink-soft: oklch(0.46 0.012 75);
+  --color-ink-faint: oklch(0.62 0.01 75);
+
+  --color-forest: oklch(0.36 0.07 158);
+  --color-forest-deep: oklch(0.29 0.06 158);
+  --color-forest-soft: oklch(0.93 0.03 158);
+
+  --color-brass: oklch(0.66 0.1 75);
+  --color-brass-soft: oklch(0.93 0.04 80);
+
+  --color-line: oklch(0.88 0.012 80);
+  --color-line-strong: oklch(0.8 0.015 80);
+
+  --color-danger: oklch(0.5 0.16 27);
+  --color-danger-soft: oklch(0.94 0.04 27);
+  --color-positive: oklch(0.5 0.11 158);
+  --color-warn: oklch(0.62 0.13 65);
+  --color-warn-soft: oklch(0.94 0.05 75);
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-sans: 'Hanken Grotesk', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, monospace;
+
+  --radius-card: 14px;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    /* Grain papier tres subtil + halo laiton en haut a droite. */
+    background-image:
+      radial-gradient(120% 80% at 100% 0%, oklch(0.95 0.03 80 / 0.5), transparent 55%),
+      radial-gradient(90% 60% at 0% 100%, oklch(0.94 0.025 158 / 0.4), transparent 50%);
+    background-attachment: fixed;
+  }
+
+  /* Chiffres alignes partout ou la chasse fixe est utilisee. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+
+  ::selection {
+    background: var(--color-forest);
+    color: var(--color-paper-raised);
+  }
+
+  /* Anneau de focus coherent et accessible. */
+  :focus-visible {
+    outline: 2px solid var(--color-forest);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer utilities {
+  .hairline {
+    border-width: 1px;
+    border-color: var(--color-line);
+  }
+
+  /* Reveil en cascade au chargement d'une page. */
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-rise {
+    animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .animate-fade {
+    animation: fade 0.3s ease both;
+  }
+}

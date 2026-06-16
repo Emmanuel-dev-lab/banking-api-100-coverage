@@ -51,6 +51,6 @@ public class TransferService {
 
     private void record(String accountId, TransactionType type, Money amount, String relatedAccountId) {
         transactionRepository.save(new Transaction(
-                idGenerator.newId(), accountId, type, amount, clock.today(), relatedAccountId));
+                idGenerator.newId(), accountId, type, amount, clock.now(), relatedAccountId));
     }
 }

@@ -8,8 +8,10 @@ import com.bank.domain.model.Transaction;
 import com.bank.domain.model.User;
 import com.bank.domain.port.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,14 +101,16 @@ public final class Fakes {
         }
 
         @Override
-        public List<Transaction> findByAccountId(String accountId) {
-            List<Transaction> result = new ArrayList<>();
-            for (Transaction t : store) {
-                if (t.accountId().equals(accountId)) {
-                    result.add(t);
-                }
-            }
-            return result;
+        public List<Transaction> findByAccountId(String accountId, int offset, int limit) {
+            return store.stream()
+                    .filter(t -> t.accountId().equals(accountId))
+                    .sorted(Comparator.comparing(Transaction::date).reversed())
+                    .skip(offset).limit(limit).toList();
+        }
+
+        @Override
+        public long countByAccountId(String accountId) {
+            return store.stream().filter(t -> t.accountId().equals(accountId)).count();
         }
 
         public int count() {
@@ -162,18 +166,32 @@ public final class Fakes {
         public Optional<User> findByUsername(String username) {
             return Optional.ofNullable(store.get(username));
         }
+
+        @Override
+        public Optional<User> findById(String userId) {
+            return store.values().stream().filter(u -> u.id().equals(userId)).findFirst();
+        }
     }
 
     public static final class FixedClock implements Clock {
         private final LocalDate today;
+        private Instant cursor;
 
         public FixedClock(LocalDate today) {
             this.today = today;
+            this.cursor = today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC);
         }
 
         @Override
         public LocalDate today() {
             return today;
+        }
+
+        /** Instant monotone : chaque appel avance d'une seconde -> ordre stable des ecritures. */
+        @Override
+        public Instant now() {
+            cursor = cursor.plusSeconds(1);
+            return cursor;
         }
     }
 

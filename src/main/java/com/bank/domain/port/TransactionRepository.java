@@ -7,5 +7,8 @@ import java.util.List;
 public interface TransactionRepository {
     void save(Transaction transaction);
 
-    List<Transaction> findByAccountId(String accountId);
+    /** Page d'ecritures du compte, des plus recentes aux plus anciennes. */
+    List<Transaction> findByAccountId(String accountId, int offset, int limit);
+
+    long countByAccountId(String accountId);
 }
