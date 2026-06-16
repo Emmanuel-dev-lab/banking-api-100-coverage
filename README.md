@@ -49,19 +49,28 @@ Prérequis : JDK 21, Maven 3.9+.
 ```bash
 # compiler + tester + verifier la couverture 100% (echoue si < 100%)
 mvn verify
-
-# lancer l'API (http://localhost:8080)
-mvn spring-boot:run
 ```
 
-Le rapport de couverture est généré dans `target/site/jacoco/index.html`.
+Les **tests** utilisent H2 en mémoire (config dans `src/test/resources`), donc
+`mvn verify` fonctionne hors-ligne sans base. Le rapport de couverture est
+généré dans `target/site/jacoco/index.html`.
+
+## Configuration
+
+L'application cible **PostgreSQL** par défaut, entièrement piloté par variables
+d'environnement (aucun profil Spring requis — robuste sur Coolify/Docker) :
+
+| Variable          | Défaut                                    | Rôle                          |
+|-------------------|-------------------------------------------|-------------------------------|
+| `DB_URL`          | `jdbc:postgresql://localhost:5432/bank`   | URL JDBC PostgreSQL           |
+| `DB_USERNAME`     | `bank`                                    | utilisateur DB                |
+| `DB_PASSWORD`     | `bank`                                    | mot de passe DB               |
+| `DDL_AUTO`        | `update`                                  | stratégie schéma Hibernate    |
+| `JWT_SECRET`      | (valeur de dev — **à changer**)           | clé de signature JWT (≥32o)   |
+| `JWT_TTL_SECONDS` | `3600`                                    | durée de validité du jeton    |
+| `SEED_ENABLED`    | `false`                                   | injecter les données de démo  |
 
 ## Déploiement Docker / Coolify
-
-L'application tourne en deux profils :
-
-- **défaut** : H2 en mémoire (tests, dev rapide). Aucune config requise.
-- **`prod`** : PostgreSQL, configuré par variables d'environnement.
 
 ### Local avec Docker Compose
 
@@ -70,9 +79,10 @@ cp .env.example .env      # adapter les secrets
 docker compose up --build
 ```
 
-Démarre PostgreSQL (volume persistant `db_data`) + l'API en profil `prod` sur
-http://localhost:8080. Le **seed** s'exécute automatiquement au premier
-démarrage (idempotent : ignoré si l'admin existe déjà).
+Démarre PostgreSQL (volume persistant `db_data`) + l'API sur
+http://localhost:8080. Le schéma est créé automatiquement (`ddl-auto=update`) et
+le **seed** s'exécute au premier démarrage (idempotent : ignoré si l'admin
+existe déjà).
 
 ### Coolify (VPS)
 

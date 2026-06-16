@@ -19,7 +19,6 @@ services:
       db:
         condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-bank}
       DB_USERNAME: ${POSTGRES_USER:-bank}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-bank}
