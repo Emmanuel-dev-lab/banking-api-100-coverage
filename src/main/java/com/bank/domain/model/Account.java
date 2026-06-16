@@ -60,6 +60,14 @@ public abstract class Account {
         status = AccountStatus.CLOSED;
     }
 
+    /** Reactive un compte gele. Un compte ferme ne peut pas etre reactive. */
+    public void reactivate() {
+        if (status == AccountStatus.CLOSED) {
+            throw new IllegalStateException("account closed: " + id);
+        }
+        status = AccountStatus.ACTIVE;
+    }
+
     public String id() {
         return id;
     }

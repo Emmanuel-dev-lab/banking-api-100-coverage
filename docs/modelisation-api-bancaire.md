@@ -106,7 +106,7 @@ Toutes héritent de `BankException` (runtime). Chacune porte un `code` stable ma
 | `ForbiddenException` | `FORBIDDEN` | 403 | rôle insuffisant / accès compte d'autrui |
 
 ### 3.3 Ports (interfaces injectables)
-- `Clock` → `LocalDate today()` (déterminisme dates).
+- `Clock` → `LocalDate today()` (dates métier) et `Instant now()` (horodatage chronologique des écritures).
 - `IdGenerator` → `String newId()`.
 - `PasswordHasher` → `String hash(String raw)`, `boolean matches(String raw, String hash)`.
 - `TokenService` → `String issue(User u)`, `TokenClaims verify(String token)` (lève `UnauthorizedException`).
@@ -151,11 +151,16 @@ Champs : `id`, `clientId`, `AccountType type`, `Money balance`, `AccountStatus s
 | `canWithdraw(Money amt)` | **abstraite** — règle spécifique au sous-type | — |
 | `freeze()` | `status = FROZEN` | (modélisé sans garde → aucune branche) |
 | `close()` | `balance.isNegative() \|\| balance.amount>0` ? règle de fermeture | voir 4.6.1 |
+| `reactivate()` | si `status == CLOSED` → `IllegalStateException` ; sinon `status = ACTIVE` | `status == CLOSED` vrai/faux |
 
 #### 4.6.1 Règle de fermeture `close()`
 - Si `balance` ≠ 0 → `IllegalStateException` (« compte non soldé »).
 - Sinon `status = CLOSED`.
 - Branches : `balance.amount != 0` vrai/faux.
+
+#### 4.6.2 Règle de réactivation `reactivate()`
+- Si `status == CLOSED` → `IllegalStateException` (« compte fermé », état définitif).
+- Sinon `status = ACTIVE` (réactive un compte gelé, ou no-op sur un compte déjà actif).
 
 #### `CurrentAccount`
 - `long overdraftLimit` (≥ 0, plafond de découvert ; 0 par défaut).
@@ -171,7 +176,7 @@ Champs : `id`, `clientId`, `AccountType type`, `Money balance`, `AccountStatus s
 
 ### 4.7 `Transaction` (écriture de registre — historique)
 `enum TransactionType { DEPOSIT, WITHDRAWAL, TRANSFER_IN, TRANSFER_OUT, LOAN_DISBURSEMENT, LOAN_REPAYMENT }`
-Champs : `id`, `accountId`, `TransactionType type`, `Money amount`, `LocalDate date`, `relatedAccountId` (nullable). Immuable. Pas de logique branchante.
+Champs : `id`, `accountId`, `TransactionType type`, `Money amount`, `Instant date` (horodatage chronologique : ordonne les écritures même au sein d'une journée), `relatedAccountId` (nullable). Immuable. Pas de logique branchante.
 
 ### 4.8 `Loan` (agrégat prêt)
 Champs : `id`, `clientId`, `accountId` (compte de décaissement/remboursement), `Money principal`, `double annualRate`, `int termMonths`, `LoanStatus status`, `Money outstandingPrincipal`, `List<Installment> schedule`, `LocalDate startDate`.
@@ -289,10 +294,13 @@ Chaque service est `@Transactional`. Les méthodes valident **puis** mutent. Les
 | GET | `/api/accounts/{id}` | owner/ADMIN | `AccountService.getAccount` |
 | POST | `/api/accounts/{id}/deposit` | owner/ADMIN | `AccountService.deposit` |
 | POST | `/api/accounts/{id}/withdraw` | owner/ADMIN | `AccountService.withdraw` |
-| GET | `/api/accounts/{id}/transactions` | owner/ADMIN | `AccountService.getHistory` |
+| GET | `/api/accounts/{id}/transactions` | owner/ADMIN | `AccountService.listTransactions` (paginé `page`/`size`, plus récent d'abord) |
+| POST | `/api/accounts/{id}/freeze` | ADMIN | `AccountService.freeze` |
+| POST | `/api/accounts/{id}/close` | ADMIN | `AccountService.close` |
+| POST | `/api/accounts/{id}/reactivate` | ADMIN | `AccountService.reactivate` |
 | POST | `/api/transfers` | owner(source)/ADMIN | `TransferService.transfer` |
 | POST | `/api/loans` | owner/ADMIN | `LoanService.requestLoan` |
-| GET | `/api/loans/{id}/schedule` | owner/ADMIN | `LoanService.getSchedule` |
+| GET | `/api/loans/{id}/schedule` | owner/ADMIN | `loan.schedule()` (lecture directe de l'agrégat) |
 | POST | `/api/loans/{id}/repay` | owner/ADMIN | `LoanService.repayLoan` |
 
 ### 6.2 Filtre d'authentification (`JwtAuthFilter` — logique branchante à couvrir si écrite par nous)
@@ -529,7 +537,11 @@ Mappe chaque `BankException` → statut HTTP + corps `{code, message}`. Un `@Exc
 | E4 | POST account | 201 |
 | E5 | POST deposit | 200 + solde |
 | E6 | POST withdraw | 200 |
-| E7 | GET transactions | 200 + liste |
+| E7 | GET transactions | 200 + page (plus récent d'abord) |
+| E7b | POST freeze (ADMIN) | 200 + statut FROZEN |
+| E7c | POST freeze (client) | 403 |
+| E7d | POST reactivate (ADMIN) | 200 + statut ACTIVE |
+| E7e | POST close (ADMIN) | 200 + statut CLOSED |
 | E8 | POST transfer | 200 |
 | E9 | POST loan | 201 + échéancier |
 | E10 | GET schedule | 200 |
