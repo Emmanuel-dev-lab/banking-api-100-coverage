@@ -25,8 +25,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/accounts")
 @Tag(name = "Comptes", description = "Consultation, depots, retraits et historique")
@@ -110,19 +108,70 @@ public class AccountController {
     }
 
     @GetMapping("/{id}/transactions")
-    @Operation(summary = "Historique", description = "Liste les ecritures du compte (depots, retraits, virements, prets).")
+    @Operation(summary = "Historique",
+            description = "Liste paginee des ecritures du compte (depots, retraits, virements, prets), "
+                    + "des plus recentes aux plus anciennes. Pagine via page/size.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Historique renvoye"),
+            @ApiResponse(responseCode = "400", description = "Parametres de pagination invalides"),
+            @ApiResponse(responseCode = "403", description = "Acces au compte d'autrui interdit"),
             @ApiResponse(responseCode = "404", description = "Compte inconnu")
     })
-    public ResponseEntity<List<TransactionResponse>> transactions(
+    public ResponseEntity<PageResponse<TransactionResponse>> transactions(
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
+            @PathVariable String id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        authorize(authorization, id);
+        return ResponseEntity.ok(PageResponse.of(
+                accountService.listTransactions(id, page, size), TransactionResponse::from));
+    }
+
+    @PostMapping("/{id}/freeze")
+    @Operation(summary = "Geler un compte",
+            description = "Reserve aux ADMIN. Bloque depots, retraits et virements jusqu'a reactivation.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Compte gele"),
+            @ApiResponse(responseCode = "403", description = "Role ADMIN requis"),
+            @ApiResponse(responseCode = "404", description = "Compte inconnu")
+    })
+    public ResponseEntity<AccountResponse> freeze(
             @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String id) {
-        authorize(authorization, id);
-        List<TransactionResponse> history = accountService.getHistory(id).stream()
-                .map(TransactionResponse::from)
-                .toList();
-        return ResponseEntity.ok(history);
+        guard.requireAdmin(authService.authenticate(RequestAuth.bearer(authorization)));
+        return ResponseEntity.ok(AccountResponse.from(accountService.freeze(id)));
+    }
+
+    @PostMapping("/{id}/close")
+    @Operation(summary = "Fermer un compte",
+            description = "Reserve aux ADMIN. Refuse si le solde n'est pas a zero. Etat definitif.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Compte ferme"),
+            @ApiResponse(responseCode = "403", description = "Role ADMIN requis"),
+            @ApiResponse(responseCode = "404", description = "Compte inconnu"),
+            @ApiResponse(responseCode = "409", description = "Solde non nul : compte non soldable")
+    })
+    public ResponseEntity<AccountResponse> close(
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
+            @PathVariable String id) {
+        guard.requireAdmin(authService.authenticate(RequestAuth.bearer(authorization)));
+        return ResponseEntity.ok(AccountResponse.from(accountService.close(id)));
+    }
+
+    @PostMapping("/{id}/reactivate")
+    @Operation(summary = "Reactiver un compte",
+            description = "Reserve aux ADMIN. Repasse un compte gele a l'etat actif. Refuse un compte ferme.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Compte reactive"),
+            @ApiResponse(responseCode = "403", description = "Role ADMIN requis"),
+            @ApiResponse(responseCode = "404", description = "Compte inconnu"),
+            @ApiResponse(responseCode = "409", description = "Compte ferme : reactivation impossible")
+    })
+    public ResponseEntity<AccountResponse> reactivate(
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
+            @PathVariable String id) {
+        guard.requireAdmin(authService.authenticate(RequestAuth.bearer(authorization)));
+        return ResponseEntity.ok(AccountResponse.from(accountService.reactivate(id)));
     }
 
     /** Authentifie, charge le compte et verifie la propriete ; renvoie le compte. */

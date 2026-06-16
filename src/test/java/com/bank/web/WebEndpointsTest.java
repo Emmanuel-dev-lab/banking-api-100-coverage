@@ -21,11 +21,13 @@ import com.bank.web.controller.MeController;
 import com.bank.web.controller.TransferController;
 import com.bank.web.dto.AccountResponse;
 import com.bank.web.dto.AmountRequest;
+import com.bank.web.dto.ChangePasswordRequest;
 import com.bank.web.dto.CreateClientRequest;
 import com.bank.web.dto.CreateLoanRequest;
 import com.bank.web.dto.LoginRequest;
 import com.bank.web.dto.MeCreateLoanRequest;
 import com.bank.web.dto.OpenAccountRequest;
+import com.bank.web.dto.UpdateClientRequest;
 import com.bank.web.dto.TransferRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -115,6 +117,25 @@ class WebEndpointsTest {
         assertThat(response.getBody().id()).isEqualTo(client.id());
     }
 
+    // E3b : modifier un client (owner)
+    @Test
+    void updateClient_owner_200() {
+        var response = clientController.update(clientToken, client.id(),
+                new UpdateClientRequest("Johnny", "Doe-Smith"));
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().firstName()).isEqualTo("Johnny");
+        assertThat(response.getBody().lastName()).isEqualTo("Doe-Smith");
+    }
+
+    // E3c : changer mon mot de passe (client)
+    @Test
+    void changePassword_client_204() {
+        var response = meController.changePassword(clientToken, new ChangePasswordRequest("pw", "newpw"));
+        assertThat(response.getStatusCode().value()).isEqualTo(204);
+        assertThat(authController.login(new LoginRequest("john", "newpw"))
+                .getStatusCode().value()).isEqualTo(200);
+    }
+
     // E4
     @Test
     void openAccount_201() {
@@ -144,9 +165,44 @@ class WebEndpointsTest {
     @Test
     void transactions_200() {
         accountController.deposit(clientToken, accountId, new AmountRequest(100));
-        var response = accountController.transactions(clientToken, accountId);
+        var response = accountController.transactions(clientToken, accountId, 0, 20);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().content()).hasSize(1);
+        assertThat(response.getBody().totalElements()).isEqualTo(1);
+    }
+
+    // E7b : geler un compte (ADMIN)
+    @Test
+    void freeze_admin_200() {
+        var response = accountController.freeze(adminToken, accountId);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().status()).isEqualTo("FROZEN");
+    }
+
+    // E7c : geler interdit a un client
+    @Test
+    void freeze_byClient_forbidden() {
+        assertThatThrownBy(() -> accountController.freeze(clientToken, accountId))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    // E7d : reactiver un compte gele (ADMIN)
+    @Test
+    void reactivate_admin_200() {
+        accountController.freeze(adminToken, accountId);
+        var response = accountController.reactivate(adminToken, accountId);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().status()).isEqualTo("ACTIVE");
+    }
+
+    // E7e : fermer un compte solde (ADMIN)
+    @Test
+    void close_admin_200() {
+        AccountResponse fresh = clientController.openAccount(clientToken, client.id(),
+                new OpenAccountRequest(AccountType.SAVINGS, 0, 0.03)).getBody();
+        var response = accountController.close(adminToken, fresh.id());
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().status()).isEqualTo("CLOSED");
     }
 
     // E8

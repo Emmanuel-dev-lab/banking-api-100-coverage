@@ -73,7 +73,7 @@ class LoanServiceTest {
         Loan loan = request();
         assertThat(loan.schedule()).hasSize(12);
         assertThat(accounts.findById("a1").orElseThrow().balance().amount()).isEqualTo(120000);
-        assertThat(transactions.findByAccountId("a1")).hasSize(1);
+        assertThat(transactions.countByAccountId("a1")).isEqualTo(1);
     }
 
     // LS4
@@ -126,20 +126,6 @@ class LoanServiceTest {
         loans.save(ghost);
         assertThatThrownBy(() -> service.repayLoan("l9", 100))
                 .isInstanceOf(AccountNotFoundException.class);
-    }
-
-    // LS8
-    @Test
-    void schedule_unknown_throws() {
-        assertThatThrownBy(() -> service.getSchedule("nope"))
-                .isInstanceOf(LoanNotFoundException.class);
-    }
-
-    // LS9
-    @Test
-    void schedule_existing_returns() {
-        Loan loan = request();
-        assertThat(service.getSchedule(loan.id())).hasSize(12);
     }
 
     // listing admin

@@ -19,8 +19,6 @@ import com.bank.domain.port.TransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Service
 public class AccountService {
 
@@ -92,9 +90,35 @@ public class AccountService {
         return account;
     }
 
-    public List<Transaction> getHistory(String accountId) {
+    @Transactional
+    public Account freeze(String accountId) {
+        Account account = getAccountForUpdate(accountId);
+        account.freeze();
+        accountRepository.save(account);
+        return account;
+    }
+
+    @Transactional
+    public Account close(String accountId) {
+        Account account = getAccountForUpdate(accountId);
+        account.close();
+        accountRepository.save(account);
+        return account;
+    }
+
+    @Transactional
+    public Account reactivate(String accountId) {
+        Account account = getAccountForUpdate(accountId);
+        account.reactivate();
+        accountRepository.save(account);
+        return account;
+    }
+
+    public Page<Transaction> listTransactions(String accountId, int page, int size) {
         getAccount(accountId);
-        return transactionRepository.findByAccountId(accountId);
+        PageRequest pr = new PageRequest(page, size);
+        return new Page<>(transactionRepository.findByAccountId(accountId, pr.offset(), pr.size()),
+                transactionRepository.countByAccountId(accountId), pr.page(), pr.size());
     }
 
     public Page<Account> listAccounts(int page, int size) {
@@ -114,6 +138,6 @@ public class AccountService {
 
     private void record(String accountId, TransactionType type, Money amount, String relatedAccountId) {
         transactionRepository.save(new Transaction(
-                idGenerator.newId(), accountId, type, amount, clock.today(), relatedAccountId));
+                idGenerator.newId(), accountId, type, amount, clock.now(), relatedAccountId));
     }
 }

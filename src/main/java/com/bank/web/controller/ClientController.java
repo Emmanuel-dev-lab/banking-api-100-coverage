@@ -15,6 +15,7 @@ import com.bank.web.dto.CreateClientRequest;
 import com.bank.web.dto.LoanResponse;
 import com.bank.web.dto.OpenAccountRequest;
 import com.bank.web.dto.PageResponse;
+import com.bank.web.dto.UpdateClientRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,6 +24,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -97,6 +99,25 @@ public class ClientController {
         TokenClaims claims = authService.authenticate(RequestAuth.bearer(authorization));
         Client client = clientService.getClient(id);
         guard.requireOwnerOrAdmin(claims, client.id());
+        return ResponseEntity.ok(ClientResponse.from(client));
+    }
+
+    @PatchMapping("/{id}")
+    @Operation(summary = "Modifier un client",
+            description = "Met a jour le nom du client. Accessible au client proprietaire ou a un ADMIN.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Client mis a jour"),
+            @ApiResponse(responseCode = "400", description = "Nom vide"),
+            @ApiResponse(responseCode = "403", description = "Acces au client d'autrui interdit"),
+            @ApiResponse(responseCode = "404", description = "Client inconnu")
+    })
+    public ResponseEntity<ClientResponse> update(
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
+            @PathVariable String id,
+            @jakarta.validation.Valid @RequestBody UpdateClientRequest request) {
+        TokenClaims claims = authService.authenticate(RequestAuth.bearer(authorization));
+        guard.requireOwnerOrAdmin(claims, id);
+        Client client = clientService.updateClient(id, request.firstName(), request.lastName());
         return ResponseEntity.ok(ClientResponse.from(client));
     }
 

@@ -22,7 +22,15 @@ public class UserRepositoryAdapter implements UserRepository {
 
     @Override
     public Optional<User> findByUsername(String username) {
-        return jpa.findById(username)
-                .map(e -> new User(e.getUserId(), e.getUsername(), e.getPasswordHash(), e.getRole(), e.getClientId()));
+        return jpa.findById(username).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<User> findById(String userId) {
+        return jpa.findByUserId(userId).map(this::toDomain);
+    }
+
+    private User toDomain(UserJpa e) {
+        return new User(e.getUserId(), e.getUsername(), e.getPasswordHash(), e.getRole(), e.getClientId());
     }
 }

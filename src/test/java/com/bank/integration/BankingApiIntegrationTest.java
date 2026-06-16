@@ -51,12 +51,12 @@ class BankingApiIntegrationTest {
         transferService.transfer(current.id(), savings.id(), 500);
 
         assertThat(accountService.getAccount(savings.id()).balance().amount()).isEqualTo(500);
-        assertThat(accountService.getHistory(current.id())).isNotEmpty();
+        assertThat(accountService.listTransactions(current.id(), 0, 20).content()).isNotEmpty();
 
         Loan loan = loanService.requestLoan(client.id(), current.id(), 120000, 0.12, 12);
         loanService.repayLoan(loan.id(), 20000);
 
-        assertThat(loanService.getSchedule(loan.id())).hasSize(12);
+        assertThat(loanService.getLoan(loan.id()).schedule()).hasSize(12);
         assertThat(loanService.getLoan(loan.id()).outstandingPrincipal().amount()).isEqualTo(100000);
     }
 

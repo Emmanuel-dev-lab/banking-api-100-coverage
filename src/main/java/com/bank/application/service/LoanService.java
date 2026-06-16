@@ -5,7 +5,6 @@ import com.bank.domain.exception.ClientNotFoundException;
 import com.bank.domain.exception.ForbiddenException;
 import com.bank.domain.exception.LoanNotFoundException;
 import com.bank.domain.model.Account;
-import com.bank.domain.model.Installment;
 import com.bank.domain.model.Loan;
 import com.bank.domain.model.Money;
 import com.bank.domain.model.Page;
@@ -20,8 +19,6 @@ import com.bank.domain.port.LoanRepository;
 import com.bank.domain.port.TransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 public class LoanService {
@@ -60,7 +57,7 @@ public class LoanService {
         accountRepository.save(account);
         loanRepository.save(loan);
         transactionRepository.save(new Transaction(idGenerator.newId(), accountId,
-                TransactionType.LOAN_DISBURSEMENT, loan.principal(), clock.today(), null));
+                TransactionType.LOAN_DISBURSEMENT, loan.principal(), clock.now(), null));
         return loan;
     }
 
@@ -80,11 +77,7 @@ public class LoanService {
         accountRepository.save(account);
         loanRepository.save(loan);
         transactionRepository.save(new Transaction(idGenerator.newId(), loan.accountId(),
-                TransactionType.LOAN_REPAYMENT, applied, clock.today(), null));
-    }
-
-    public List<Installment> getSchedule(String loanId) {
-        return getLoan(loanId).schedule();
+                TransactionType.LOAN_REPAYMENT, applied, clock.now(), null));
     }
 
     public Page<Loan> listLoans(int page, int size) {
