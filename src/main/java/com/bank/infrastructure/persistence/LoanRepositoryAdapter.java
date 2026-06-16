@@ -5,6 +5,7 @@ import com.bank.domain.model.Loan;
 import com.bank.domain.model.LoanStatus;
 import com.bank.domain.model.Money;
 import com.bank.domain.port.LoanRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -33,6 +34,30 @@ public class LoanRepositoryAdapter implements LoanRepository {
     @Override
     public Optional<Loan> findById(String id) {
         return jpa.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public List<Loan> findAll(int offset, int limit) {
+        return jpa.findAll(PageRequest.of(offset / limit, limit)).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long count() {
+        return jpa.count();
+    }
+
+    @Override
+    public List<Loan> findByClientId(String clientId, int offset, int limit) {
+        return jpa.findByClientId(clientId, PageRequest.of(offset / limit, limit)).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long countByClientId(String clientId) {
+        return jpa.countByClientId(clientId);
     }
 
     private Loan toDomain(LoanJpa e) {

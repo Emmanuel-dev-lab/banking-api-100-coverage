@@ -17,12 +17,14 @@ import com.bank.web.controller.AccountController;
 import com.bank.web.controller.AuthController;
 import com.bank.web.controller.ClientController;
 import com.bank.web.controller.LoanController;
+import com.bank.web.controller.MeController;
 import com.bank.web.controller.TransferController;
 import com.bank.web.dto.AccountResponse;
 import com.bank.web.dto.AmountRequest;
 import com.bank.web.dto.CreateClientRequest;
 import com.bank.web.dto.CreateLoanRequest;
 import com.bank.web.dto.LoginRequest;
+import com.bank.web.dto.MeCreateLoanRequest;
 import com.bank.web.dto.OpenAccountRequest;
 import com.bank.web.dto.TransferRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +45,7 @@ class WebEndpointsTest {
     private AccountController accountController;
     private TransferController transferController;
     private LoanController loanController;
+    private MeController meController;
 
     private Client client;
     private String adminToken;
@@ -69,10 +72,11 @@ class WebEndpointsTest {
         var loanService = new LoanService(loans, clients, accounts, transactions, ids, clock);
 
         authController = new AuthController(authService);
-        clientController = new ClientController(clientService, accountService, authService, guard);
+        clientController = new ClientController(clientService, accountService, loanService, authService, guard);
         accountController = new AccountController(accountService, authService, guard);
         transferController = new TransferController(accountService, transferService, authService, guard);
         loanController = new LoanController(loanService, authService, guard);
+        meController = new MeController(clientService, accountService, loanService, authService, guard);
 
         User admin = new User("u-admin", "admin", hasher.hash("pw"), Role.ADMIN, null);
         users.save(admin);
@@ -220,6 +224,83 @@ class WebEndpointsTest {
         var response = clientController.listAccounts(clientToken, client.id(), 0, 20);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().content()).isNotEmpty();
+    }
+
+    // GET /me (client)
+    @Test
+    void me_client_200() {
+        var response = meController.me(clientToken);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().id()).isEqualTo(client.id());
+    }
+
+    // GET /me par un ADMIN -> 403 (pas de clientId)
+    @Test
+    void me_admin_forbidden() {
+        assertThatThrownBy(() -> meController.me(adminToken))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    // GET /me/accounts
+    @Test
+    void myAccounts_client_200() {
+        var response = meController.myAccounts(clientToken, 0, 20);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().content()).isNotEmpty();
+    }
+
+    // GET /me/loans
+    @Test
+    void myLoans_client_200() {
+        meController.requestLoan(clientToken, new MeCreateLoanRequest(accountId, 120000, 0.12, 12));
+        var response = meController.myLoans(clientToken, 0, 20);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().totalElements()).isEqualTo(1);
+    }
+
+    // POST /me/accounts
+    @Test
+    void openMyAccount_201() {
+        var response = meController.openAccount(clientToken, new OpenAccountRequest(AccountType.SAVINGS, 0, 0.03));
+        assertThat(response.getStatusCode().value()).isEqualTo(201);
+        assertThat(response.getBody().type()).isEqualTo("SAVINGS");
+    }
+
+    // POST /me/loans
+    @Test
+    void requestMyLoan_201() {
+        var response = meController.requestLoan(clientToken, new MeCreateLoanRequest(accountId, 120000, 0.12, 12));
+        assertThat(response.getStatusCode().value()).isEqualTo(201);
+        assertThat(response.getBody().schedule()).hasSize(12);
+        assertThat(response.getBody().clientId()).isEqualTo(client.id());
+    }
+
+    // GET /loans (ADMIN)
+    @Test
+    void listLoans_admin_200() {
+        loanController.create(clientToken, new CreateLoanRequest(client.id(), accountId, 120000, 0.12, 12));
+        var response = loanController.list(adminToken, 0, 20);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().totalElements()).isEqualTo(1);
+    }
+
+    // GET /loans/{id}
+    @Test
+    void getLoan_owner_200() {
+        String loanId = createLoanAndGetId();
+        var response = loanController.get(clientToken, loanId);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().id()).isEqualTo(loanId);
+        assertThat(response.getBody().status()).isEqualTo("ACTIVE");
+    }
+
+    // GET /clients/{id}/loans (owner)
+    @Test
+    void listClientLoans_owner_200() {
+        loanController.create(clientToken, new CreateLoanRequest(client.id(), accountId, 120000, 0.12, 12));
+        var response = clientController.listLoans(clientToken, client.id(), 0, 20);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().totalElements()).isEqualTo(1);
     }
 
     // accesseur compte (couvre GET /accounts/{id})

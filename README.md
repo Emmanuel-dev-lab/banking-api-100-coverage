@@ -145,6 +145,11 @@ test » qui garantit le 100 % — est dans
 | Méthode | Chemin                              | Rôle requis      |
 |---------|-------------------------------------|------------------|
 | POST    | `/api/auth/login`                   | public           |
+| GET     | `/api/me`                           | CLIENT           |
+| GET     | `/api/me/accounts`                  | CLIENT           |
+| GET     | `/api/me/loans`                     | CLIENT           |
+| POST    | `/api/me/accounts`                  | CLIENT           |
+| POST    | `/api/me/loans`                     | CLIENT           |
 | POST    | `/api/clients`                      | ADMIN            |
 | GET     | `/api/clients`                      | ADMIN            |
 | GET     | `/api/clients/{id}`                 | owner / ADMIN    |
@@ -156,13 +161,21 @@ test » qui garantit le 100 % — est dans
 | POST    | `/api/accounts/{id}/withdraw`       | owner / ADMIN    |
 | GET     | `/api/accounts/{id}/transactions`   | owner / ADMIN    |
 | POST    | `/api/transfers`                    | owner / ADMIN    |
+| GET     | `/api/clients/{id}/loans`           | owner / ADMIN    |
 | POST    | `/api/loans`                        | owner / ADMIN    |
+| GET     | `/api/loans`                        | ADMIN            |
+| GET     | `/api/loans/{id}`                   | owner / ADMIN    |
 | GET     | `/api/loans/{id}/schedule`          | owner / ADMIN    |
 | POST    | `/api/loans/{id}/repay`             | owner / ADMIN    |
 
 Les endpoints protégés attendent l'en-tête `Authorization: Bearer <token>`.
 Les listes sont paginées via `?page=<n>&size=<m>` (défaut `page=0`, `size=20`,
 `size` max 100) et renvoient `{ content, page, size, totalElements, totalPages }`.
+
+**Self-service `/api/me/...`** : un client accède à ses propres données sans
+mettre son id dans l'URL — l'identité vient du jeton. Un ADMIN n'a pas de profil
+client et reçoit `403` sur `/me`. Les variantes `/api/clients/{id}/...` servent
+l'administration (un ADMIN agit sur n'importe quel client).
 
 ### Exemple
 

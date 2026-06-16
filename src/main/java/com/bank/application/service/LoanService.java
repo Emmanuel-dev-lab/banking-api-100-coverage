@@ -7,6 +7,8 @@ import com.bank.domain.model.Account;
 import com.bank.domain.model.Installment;
 import com.bank.domain.model.Loan;
 import com.bank.domain.model.Money;
+import com.bank.domain.model.Page;
+import com.bank.domain.model.PageRequest;
 import com.bank.domain.model.Transaction;
 import com.bank.domain.model.TransactionType;
 import com.bank.domain.port.AccountRepository;
@@ -79,5 +81,20 @@ public class LoanService {
 
     public List<Installment> getSchedule(String loanId) {
         return getLoan(loanId).schedule();
+    }
+
+    public Page<Loan> listLoans(int page, int size) {
+        PageRequest pr = new PageRequest(page, size);
+        return new Page<>(loanRepository.findAll(pr.offset(), pr.size()),
+                loanRepository.count(), pr.page(), pr.size());
+    }
+
+    public Page<Loan> listClientLoans(String clientId, int page, int size) {
+        if (clientRepository.findById(clientId).isEmpty()) {
+            throw new ClientNotFoundException(clientId);
+        }
+        PageRequest pr = new PageRequest(page, size);
+        return new Page<>(loanRepository.findByClientId(clientId, pr.offset(), pr.size()),
+                loanRepository.countByClientId(clientId), pr.page(), pr.size());
     }
 }

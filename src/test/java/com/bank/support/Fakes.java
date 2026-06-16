@@ -121,6 +121,28 @@ public final class Fakes {
         public Optional<Loan> findById(String id) {
             return Optional.ofNullable(store.get(id));
         }
+
+        @Override
+        public List<Loan> findAll(int offset, int limit) {
+            return store.values().stream().skip(offset).limit(limit).toList();
+        }
+
+        @Override
+        public long count() {
+            return store.size();
+        }
+
+        @Override
+        public List<Loan> findByClientId(String clientId, int offset, int limit) {
+            return store.values().stream()
+                    .filter(l -> l.clientId().equals(clientId))
+                    .skip(offset).limit(limit).toList();
+        }
+
+        @Override
+        public long countByClientId(String clientId) {
+            return store.values().stream().filter(l -> l.clientId().equals(clientId)).count();
+        }
     }
 
     public static final class InMemoryUserRepository implements UserRepository {
