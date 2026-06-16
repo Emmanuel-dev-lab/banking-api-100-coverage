@@ -108,7 +108,7 @@ public class MeController {
     })
     public ResponseEntity<AccountResponse> openAccount(
             @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
-            @RequestBody OpenAccountRequest request) {
+            @jakarta.validation.Valid @RequestBody OpenAccountRequest request) {
         String clientId = guard.requireClientId(authenticate(authorization));
         Account account = accountService.openAccount(
                 clientId, request.type(), request.overdraftLimit(), request.annualRate());
@@ -125,7 +125,7 @@ public class MeController {
     })
     public ResponseEntity<LoanResponse> requestLoan(
             @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
-            @RequestBody MeCreateLoanRequest request) {
+            @jakarta.validation.Valid @RequestBody MeCreateLoanRequest request) {
         String clientId = guard.requireClientId(authenticate(authorization));
         Loan loan = loanService.requestLoan(clientId, request.accountId(),
                 request.principal(), request.annualRate(), request.termMonths());

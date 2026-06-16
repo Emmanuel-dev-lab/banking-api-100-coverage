@@ -1,4 +1,6 @@
 package com.bank.web.dto;
 
-public record AmountRequest(long amount) {
+import jakarta.validation.constraints.Positive;
+
+public record AmountRequest(@Positive(message = "amount must be > 0") long amount) {
 }

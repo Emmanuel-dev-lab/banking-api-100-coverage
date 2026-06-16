@@ -56,7 +56,7 @@ public class LoanController {
     })
     public ResponseEntity<LoanResponse> create(
             @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
-            @RequestBody CreateLoanRequest request) {
+            @jakarta.validation.Valid @RequestBody CreateLoanRequest request) {
         TokenClaims claims = authService.authenticate(RequestAuth.bearer(authorization));
         guard.requireOwnerOrAdmin(claims, request.clientId());
         Loan loan = loanService.requestLoan(request.clientId(), request.accountId(),
@@ -123,7 +123,7 @@ public class LoanController {
     public ResponseEntity<Void> repay(
             @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String id,
-            @RequestBody AmountRequest request) {
+            @jakarta.validation.Valid @RequestBody AmountRequest request) {
         authorize(authorization, id);
         loanService.repayLoan(id, request.amount());
         return ResponseEntity.ok().build();

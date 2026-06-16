@@ -34,7 +34,7 @@ public class AuthController {
             @ApiResponse(responseCode = "200", description = "Connexion reussie, jeton renvoye"),
             @ApiResponse(responseCode = "401", description = "Identifiants invalides", content = @io.swagger.v3.oas.annotations.media.Content)
     })
-    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<TokenResponse> login(@jakarta.validation.Valid @RequestBody LoginRequest request) {
         String token = authService.login(request.username(), request.password());
         return ResponseEntity.ok(new TokenResponse(token));
     }
