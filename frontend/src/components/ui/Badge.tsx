@@ -49,7 +49,17 @@ export function AccountTypeTag({ type }: { type: AccountType }) {
   );
 }
 
-const credits: TransactionType[] = ['DEPOSIT', 'TRANSFER_IN', 'LOAN_DISBURSEMENT'];
+const credits: TransactionType[] = ['DEPOSIT', 'TRANSFER_IN', 'LOAN_DISBURSEMENT', 'INTEREST'];
+
+/** Marqueur "en retard" pour un pret dont une echeance est echue. */
+export function LateBadge() {
+  return (
+    <Pill className="bg-danger-soft text-danger">
+      <span className="size-1.5 rounded-full bg-current" />
+      En retard
+    </Pill>
+  );
+}
 
 export function TxnTypeBadge({ type }: { type: TransactionType }) {
   const credit = credits.includes(type);

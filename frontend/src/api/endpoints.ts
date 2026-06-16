@@ -6,6 +6,7 @@ import type {
   ClientResponse,
   CreateClientRequest,
   CreateLoanRequest,
+  JobResultResponse,
   LoanResponse,
   LoginRequest,
   MeCreateLoanRequest,
@@ -81,4 +82,9 @@ export const api = {
     request<LoanResponse>('/api/loans', { method: 'POST', body }),
   repayLoan: (id: string, body: AmountRequest) =>
     request<void>(`/api/loans/${id}/repay`, { method: 'POST', body }),
+
+  // --- Jobs (admin) ---
+  capitalizeInterest: () =>
+    request<JobResultResponse>('/api/admin/jobs/interest', { method: 'POST' }),
+  flagOverdue: () => request<JobResultResponse>('/api/admin/jobs/overdue', { method: 'POST' }),
 };

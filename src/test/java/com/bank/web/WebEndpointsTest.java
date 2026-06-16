@@ -4,6 +4,7 @@ import com.bank.application.service.AccountService;
 import com.bank.application.service.AuthService;
 import com.bank.application.service.AuthorizationGuard;
 import com.bank.application.service.ClientService;
+import com.bank.application.service.InterestService;
 import com.bank.application.service.LoanService;
 import com.bank.application.service.TransferService;
 import com.bank.domain.exception.ForbiddenException;
@@ -16,6 +17,7 @@ import com.bank.support.Fakes;
 import com.bank.web.controller.AccountController;
 import com.bank.web.controller.AuthController;
 import com.bank.web.controller.ClientController;
+import com.bank.web.controller.JobController;
 import com.bank.web.controller.LoanController;
 import com.bank.web.controller.MeController;
 import com.bank.web.controller.TransferController;
@@ -48,6 +50,7 @@ class WebEndpointsTest {
     private TransferController transferController;
     private LoanController loanController;
     private MeController meController;
+    private JobController jobController;
 
     private Client client;
     private String adminToken;
@@ -72,6 +75,7 @@ class WebEndpointsTest {
         var accountService = new AccountService(accounts, clients, transactions, ids, clock);
         var transferService = new TransferService(accounts, transactions, ids, clock);
         var loanService = new LoanService(loans, clients, accounts, transactions, ids, clock);
+        var interestService = new InterestService(accounts, transactions, ids, clock);
 
         authController = new AuthController(authService);
         clientController = new ClientController(clientService, accountService, loanService, authService, guard);
@@ -79,6 +83,7 @@ class WebEndpointsTest {
         transferController = new TransferController(accountService, transferService, authService, guard);
         loanController = new LoanController(loanService, authService, guard);
         meController = new MeController(clientService, accountService, loanService, authService, guard);
+        jobController = new JobController(interestService, loanService, authService, guard);
 
         User admin = new User("u-admin", "admin", hasher.hash("pw"), Role.ADMIN, null);
         users.save(admin);
@@ -365,6 +370,41 @@ class WebEndpointsTest {
         var response = accountController.getAccount(clientToken, accountId);
         assertThat(response.getStatusCode().value()).isEqualTo(200);
         assertThat(response.getBody().id()).isEqualTo(accountId);
+    }
+
+    // J1 : capitalisation des interets (ADMIN)
+    @Test
+    void capitalizeInterest_admin_200() {
+        meController.openAccount(clientToken, new OpenAccountRequest(AccountType.SAVINGS, 0, 0.12));
+        accountController.deposit(adminToken,
+                meController.myAccounts(clientToken, 0, 20).getBody().content().stream()
+                        .filter(a -> a.type().equals("SAVINGS")).findFirst().orElseThrow().id(),
+                new AmountRequest(120000));
+        var response = jobController.capitalizeInterest(adminToken);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().processed()).isEqualTo(1);
+    }
+
+    // J2 : capitalisation interdite a un client
+    @Test
+    void capitalizeInterest_byClient_forbidden() {
+        assertThatThrownBy(() -> jobController.capitalizeInterest(clientToken))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    // J3 : marquage des prets en retard (ADMIN)
+    @Test
+    void flagOverdue_admin_200() {
+        var response = jobController.flagOverdue(adminToken);
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody().processed()).isZero();
+    }
+
+    // J4 : marquage interdit a un client
+    @Test
+    void flagOverdue_byClient_forbidden() {
+        assertThatThrownBy(() -> jobController.flagOverdue(clientToken))
+                .isInstanceOf(ForbiddenException.class);
     }
 
     private String createLoanAndGetId() {

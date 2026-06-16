@@ -11,7 +11,8 @@ export type TransactionType =
   | 'TRANSFER_IN'
   | 'TRANSFER_OUT'
   | 'LOAN_DISBURSEMENT'
-  | 'LOAN_REPAYMENT';
+  | 'LOAN_REPAYMENT'
+  | 'INTEREST';
 
 export interface ClientResponse {
   id: string;
@@ -52,6 +53,7 @@ export interface LoanResponse {
   principal: number;
   outstandingPrincipal: number;
   status: LoanStatus;
+  late: boolean;
   schedule: InstallmentResponse[];
 }
 
@@ -65,6 +67,10 @@ export interface PageResponse<T> {
 
 export interface TokenResponse {
   token: string;
+}
+
+export interface JobResultResponse {
+  processed: number;
 }
 
 export interface ErrorResponse {

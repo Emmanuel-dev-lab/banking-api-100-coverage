@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class LoanService {
 
+    private static final int OVERDUE_PAGE = 100;
+
     private final LoanRepository loanRepository;
     private final ClientRepository clientRepository;
     private final AccountRepository accountRepository;
@@ -78,6 +80,25 @@ public class LoanService {
         loanRepository.save(loan);
         transactionRepository.save(new Transaction(idGenerator.newId(), loan.accountId(),
                 TransactionType.LOAN_REPAYMENT, applied, clock.now(), null));
+    }
+
+    /**
+     * Rafraichit le marqueur de retard de tous les prets et renvoie le nombre
+     * de prets actuellement en retard. Declenche par un job ou un admin.
+     */
+    @Transactional
+    public int flagOverdueLoans() {
+        long total = loanRepository.count();
+        int late = 0;
+        for (int offset = 0; offset < total; offset += OVERDUE_PAGE) {
+            for (Loan loan : loanRepository.findAll(offset, OVERDUE_PAGE)) {
+                if (loan.refreshOverdue(clock.today())) {
+                    late++;
+                }
+                loanRepository.save(loan);
+            }
+        }
+        return late;
     }
 
     public Page<Loan> listLoans(int page, int size) {

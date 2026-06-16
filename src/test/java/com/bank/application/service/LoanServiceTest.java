@@ -122,10 +122,30 @@ class LoanServiceTest {
     @Test
     void repay_loanWithMissingAccount_throws() {
         Loan ghost = Loan.restore("l9", "c1", "ghost", Money.of(1000), 0.0, 2,
-                LocalDate.of(2026, 1, 1), Money.of(1000), LoanStatus.ACTIVE, List.of());
+                LocalDate.of(2026, 1, 1), Money.of(1000), LoanStatus.ACTIVE, List.of(), false);
         loans.save(ghost);
         assertThatThrownBy(() -> service.repayLoan("l9", 100))
                 .isInstanceOf(AccountNotFoundException.class);
+    }
+
+    // LS10 : le job marque les prets dont une echeance est echue et non payee
+    @Test
+    void flagOverdueLoans_marksLateLoans() {
+        var laterClock = new Fakes.FixedClock(LocalDate.of(2026, 3, 1));
+        var svc = new LoanService(loans, clients, accounts, transactions,
+                new Fakes.SequentialIdGenerator(), laterClock);
+        // Pret demarre le 2026-01-01 : 1re echeance 2026-02-01, echue au 2026-03-01.
+        loans.save(Loan.create("lx", "c1", "a1", Money.of(120000), 0.0, 6, LocalDate.of(2026, 1, 1)));
+        int late = svc.flagOverdueLoans();
+        assertThat(late).isEqualTo(1);
+        assertThat(loans.findById("lx").orElseThrow().late()).isTrue();
+    }
+
+    // LS11 : aucun pret en retard (echeances futures) -> 0
+    @Test
+    void flagOverdueLoans_noOverdue_returnsZero() {
+        request(); // clock par defaut 2026-01-01, echeances a partir de 2026-02-01
+        assertThat(service.flagOverdueLoans()).isZero();
     }
 
     // listing admin

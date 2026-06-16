@@ -6,5 +6,6 @@ public enum TransactionType {
     TRANSFER_IN,
     TRANSFER_OUT,
     LOAN_DISBURSEMENT,
-    LOAN_REPAYMENT
+    LOAN_REPAYMENT,
+    INTEREST
 }
