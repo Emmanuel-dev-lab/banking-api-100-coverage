@@ -76,12 +76,20 @@ démarrage (idempotent : ignoré si l'admin existe déjà).
 
 ### Coolify (VPS)
 
-1. Nouvelle ressource → **Docker Compose** (ou Dockerfile) pointant sur ce dépôt.
+1. Nouvelle ressource → **Docker Compose** pointant sur ce dépôt.
 2. Définir les variables d'environnement (voir `.env.example`) :
    `POSTGRES_PASSWORD`, `JWT_SECRET` (long et aléatoire), éventuellement
    `SEED_ENABLED=false` pour ne pas injecter les données de démo.
-3. Déployer. Coolify build l'image, lance Postgres + l'API, gère le volume et le
-   reverse-proxy/HTTPS.
+3. Renseigner le domaine de l'API : Coolify route automatiquement vers le port
+   **8080** exposé par le conteneur via son reverse-proxy (Traefik) + HTTPS.
+4. Déployer. Coolify build l'image, lance Postgres + l'API et gère le volume.
+
+> **Important** : le service `api` n'expose **aucun port hôte** dans
+> `docker-compose.yml` (directive `expose` seulement). C'est volontaire : sur un
+> VPS le port 8080 est souvent déjà pris (proxy Coolify) — binder `8080:8080`
+> provoque l'erreur `port is already allocated`. Le routage passe par le proxy
+> Coolify. Le binding de port n'existe que dans `docker-compose.override.yml`,
+> utilisé uniquement en local (`docker compose up`).
 
 Variables reconnues : `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`,
 `JWT_TTL_SECONDS`, `SEED_ENABLED`, `SPRING_PROFILES_ACTIVE`.
