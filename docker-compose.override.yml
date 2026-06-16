@@ -1,0 +1,8 @@
+# Surcharge de developpement LOCAL uniquement.
+# `docker compose up` la fusionne automatiquement avec docker-compose.yml.
+# Coolify deploie avec `-f docker-compose.yml` explicitement : ce fichier est
+# alors ignore, donc aucun port hote n'est bind sur le VPS (pas de conflit).
+services:
+  api:
+    ports:
+      - "${API_PORT:-8080}:8080"

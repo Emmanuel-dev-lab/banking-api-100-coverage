@@ -26,8 +26,12 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production-please-0123456789abcdef}
       JWT_TTL_SECONDS: ${JWT_TTL_SECONDS:-3600}
       SEED_ENABLED: ${SEED_ENABLED:-true}
-    ports:
-      - "${API_PORT:-8080}:8080"
+    # Pas de binding de port hote : sur Coolify, le reverse-proxy route vers
+    # ce port expose via le reseau interne. Pour exposer un port en local,
+    # voir docker-compose.override.yml (applique automatiquement par
+    # `docker compose up`, ignore par Coolify qui passe -f docker-compose.yml).
+    expose:
+      - "8080"
 
 volumes:
   db_data:
