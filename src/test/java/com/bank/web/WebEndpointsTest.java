@@ -64,7 +64,7 @@ class WebEndpointsTest {
         var hasher = new Fakes.FakePasswordHasher();
         tokens = new Fakes.FakeTokenService();
 
-        var authService = new AuthService(users, hasher, tokens);
+        var authService = new AuthService(users, hasher, tokens, new Fakes.FakeLoginAttemptGuard());
         var guard = new AuthorizationGuard();
         var clientService = new ClientService(clients, users, ids, hasher);
         var accountService = new AccountService(accounts, clients, transactions, ids, clock);

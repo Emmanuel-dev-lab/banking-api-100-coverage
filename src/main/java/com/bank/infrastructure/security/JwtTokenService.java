@@ -19,19 +19,32 @@ import java.util.Date;
 @Component
 public class JwtTokenService implements TokenService {
 
+    /** Taille minimale du secret pour HS256 (256 bits = 32 octets). */
+    private static final int MIN_SECRET_BYTES = 32;
+
     private final SecretKey key;
     private final long ttlSeconds;
+    private final String issuer;
 
     public JwtTokenService(@Value("${app.jwt.secret}") String secret,
-                           @Value("${app.jwt.ttl-seconds}") long ttlSeconds) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+                           @Value("${app.jwt.ttl-seconds}") long ttlSeconds,
+                           @Value("${app.jwt.issuer}") String issuer) {
+        byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                    "app.jwt.secret doit faire au moins " + MIN_SECRET_BYTES
+                            + " octets (256 bits) pour HS256; recu: " + bytes.length);
+        }
+        this.key = Keys.hmacShaKeyFor(bytes);
         this.ttlSeconds = ttlSeconds;
+        this.issuer = issuer;
     }
 
     @Override
     public String issue(User user) {
         long now = System.currentTimeMillis();
         return Jwts.builder()
+                .issuer(issuer)
                 .subject(user.id())
                 .claim("clientId", user.clientId())
                 .claim("role", user.role().name())
@@ -46,6 +59,7 @@ public class JwtTokenService implements TokenService {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(key)
+                    .requireIssuer(issuer)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
