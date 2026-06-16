@@ -34,7 +34,7 @@ public class LoanJpa {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "installments", joinColumns = @JoinColumn(name = "loan_id"))
-    @OrderColumn(name = "position")
+    @OrderColumn(name = "line_no")
     private List<InstallmentEmb> schedule = new ArrayList<>();
 
     protected LoanJpa() {
