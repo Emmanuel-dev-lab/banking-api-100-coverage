@@ -56,6 +56,18 @@ mvn spring-boot:run
 
 Le rapport de couverture est généré dans `target/site/jacoco/index.html`.
 
+## Documentation interactive (Swagger / OpenAPI)
+
+Une fois l'API lancée :
+
+- **Swagger UI** : http://localhost:8080/swagger-ui.html
+- **Contrat OpenAPI (JSON)** : http://localhost:8080/v3/api-docs
+
+Chaque endpoint y est décrit (résumé, paramètres, codes de réponse). Pour les
+endpoints protégés : appeler `POST /api/auth/login`, copier le jeton, cliquer
+sur **Authorize** (cadenas) et le coller — il sera ajouté automatiquement en
+`Authorization: Bearer <token>` sur les appels suivants.
+
 ## Tests & couverture
 
 - **130 tests** : unitaires domaine (JUnit pur), unitaires application (fakes

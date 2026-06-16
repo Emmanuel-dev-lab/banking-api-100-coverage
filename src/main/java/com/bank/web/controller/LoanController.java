@@ -10,6 +10,11 @@ import com.bank.web.dto.AmountRequest;
 import com.bank.web.dto.CreateLoanRequest;
 import com.bank.web.dto.InstallmentResponse;
 import com.bank.web.dto.LoanResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +29,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/loans")
+@Tag(name = "Prets", description = "Demande de pret, echeancier d'amortissement et remboursement")
 public class LoanController {
 
     private final LoanService loanService;
@@ -37,8 +43,17 @@ public class LoanController {
     }
 
     @PostMapping
+    @Operation(summary = "Demander un pret",
+            description = "Cree un pret a amortissement constant, genere l'echeancier et decaisse "
+                    + "le capital sur le compte indique.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Pret cree, echeancier renvoye"),
+            @ApiResponse(responseCode = "400", description = "Termes invalides (capital/taux/duree)"),
+            @ApiResponse(responseCode = "403", description = "Acces interdit"),
+            @ApiResponse(responseCode = "404", description = "Client ou compte inconnu")
+    })
     public ResponseEntity<LoanResponse> create(
-            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @RequestBody CreateLoanRequest request) {
         TokenClaims claims = authService.authenticate(RequestAuth.bearer(authorization));
         guard.requireOwnerOrAdmin(claims, request.clientId());
@@ -48,8 +63,14 @@ public class LoanController {
     }
 
     @GetMapping("/{id}/schedule")
+    @Operation(summary = "Consulter l'echeancier", description = "Renvoie les echeances du pret (capital, interets, statut).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Echeancier renvoye"),
+            @ApiResponse(responseCode = "403", description = "Acces interdit"),
+            @ApiResponse(responseCode = "404", description = "Pret inconnu")
+    })
     public ResponseEntity<List<InstallmentResponse>> schedule(
-            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String id) {
         Loan loan = authorize(authorization, id);
         List<InstallmentResponse> schedule = loan.schedule().stream()
@@ -59,8 +80,18 @@ public class LoanController {
     }
 
     @PostMapping("/{id}/repay")
+    @Operation(summary = "Rembourser un pret",
+            description = "Reduit le capital restant du et debite le compte. Solde le pret quand le capital atteint 0.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Remboursement effectue"),
+            @ApiResponse(responseCode = "400", description = "Montant <= 0"),
+            @ApiResponse(responseCode = "403", description = "Acces interdit"),
+            @ApiResponse(responseCode = "404", description = "Pret inconnu"),
+            @ApiResponse(responseCode = "409", description = "Pret deja solde"),
+            @ApiResponse(responseCode = "422", description = "Fonds insuffisants sur le compte")
+    })
     public ResponseEntity<Void> repay(
-            @RequestHeader(name = "Authorization", required = false) String authorization,
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
             @PathVariable String id,
             @RequestBody AmountRequest request) {
         authorize(authorization, id);
