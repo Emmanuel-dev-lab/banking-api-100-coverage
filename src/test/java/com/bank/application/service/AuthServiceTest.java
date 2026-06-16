@@ -70,4 +70,28 @@ class AuthServiceTest {
         assertThat(claims.clientId()).isEqualTo("c1");
         assertThat(claims.role()).isEqualTo(Role.CLIENT);
     }
+
+    // AS5 : changement de mot de passe avec l'ancien correct
+    @Test
+    void changePassword_correctOld_updatesHash() {
+        service.changePassword("u1", "secret", "newpass");
+        assertThatThrownBy(() -> service.login("alice", "secret"))
+                .isInstanceOf(UnauthorizedException.class);
+        assertThat(service.login("alice", "newpass")).isEqualTo("tok-u1");
+    }
+
+    // AS6 : ancien mot de passe incorrect -> 401, hash inchange
+    @Test
+    void changePassword_wrongOld_unauthorized() {
+        assertThatThrownBy(() -> service.changePassword("u1", "wrong", "newpass"))
+                .isInstanceOf(UnauthorizedException.class);
+        assertThat(service.login("alice", "secret")).isEqualTo("tok-u1");
+    }
+
+    // AS7 : utilisateur introuvable (jeton orphelin) -> 401
+    @Test
+    void changePassword_unknownUser_unauthorized() {
+        assertThatThrownBy(() -> service.changePassword("ghost", "secret", "newpass"))
+                .isInstanceOf(UnauthorizedException.class);
+    }
 }

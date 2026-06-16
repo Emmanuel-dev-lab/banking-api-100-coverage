@@ -10,6 +10,7 @@ import com.bank.domain.model.Loan;
 import com.bank.domain.port.TokenClaims;
 import com.bank.web.RequestAuth;
 import com.bank.web.dto.AccountResponse;
+import com.bank.web.dto.ChangePasswordRequest;
 import com.bank.web.dto.ClientResponse;
 import com.bank.web.dto.LoanResponse;
 import com.bank.web.dto.MeCreateLoanRequest;
@@ -130,6 +131,22 @@ public class MeController {
         Loan loan = loanService.requestLoan(clientId, request.accountId(),
                 request.principal(), request.annualRate(), request.termMonths());
         return ResponseEntity.status(HttpStatus.CREATED).body(LoanResponse.from(loan));
+    }
+
+    @PostMapping("/password")
+    @Operation(summary = "Changer mon mot de passe",
+            description = "Verifie l'ancien mot de passe et le remplace par le nouveau.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Mot de passe change"),
+            @ApiResponse(responseCode = "400", description = "Champ manquant"),
+            @ApiResponse(responseCode = "401", description = "Jeton ou ancien mot de passe invalide")
+    })
+    public ResponseEntity<Void> changePassword(
+            @Parameter(hidden = true) @RequestHeader(name = "Authorization", required = false) String authorization,
+            @jakarta.validation.Valid @RequestBody ChangePasswordRequest request) {
+        TokenClaims claims = authenticate(authorization);
+        authService.changePassword(claims.userId(), request.oldPassword(), request.newPassword());
+        return ResponseEntity.noContent().build();
     }
 
     private TokenClaims authenticate(String authorization) {

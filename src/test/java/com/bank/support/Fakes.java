@@ -166,6 +166,11 @@ public final class Fakes {
         public Optional<User> findByUsername(String username) {
             return Optional.ofNullable(store.get(username));
         }
+
+        @Override
+        public Optional<User> findById(String userId) {
+            return store.values().stream().filter(u -> u.id().equals(userId)).findFirst();
+        }
     }
 
     public static final class FixedClock implements Clock {
