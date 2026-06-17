@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -31,6 +32,7 @@ public class LoanJpa {
     private LoanStatus status;
     private long outstandingPrincipal;
     private LocalDate startDate;
+    @ColumnDefault("false")
     private boolean late;
 
     @ElementCollection(fetch = FetchType.EAGER)
